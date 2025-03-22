@@ -14,7 +14,7 @@
 ## 使用方法
 
 1. 在浏览器中打开`index.html`文件
-2. 输入您的DeepSeek API密钥（可以从[DeepSeek开放平台](https://platform.deepseek.com/)获取）
+2. 输入您的DeepSeek API Key（可以从[DeepSeek开放平台](https://platform.deepseek.com/)获取）
 3. 上传英文PDF文件（支持拖放或点击浏览）
 4. 设置分块大小（默认为300个单词一块）
 5. 点击"开始翻译"按钮
