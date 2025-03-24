@@ -113,6 +113,9 @@ function handleFileDrop(event) {
     }
 }
 
+// 全局变量用于存储PDF文件信息
+let fileInfo = null;
+
 // 从PDF提取文本
 async function extractPdfText(file) {
     updateStatus('正在解析PDF文件...', 20);
@@ -121,6 +124,13 @@ async function extractPdfText(file) {
         const arrayBuffer = await readFileAsArrayBuffer(file);
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         const numPages = pdf.numPages;
+        
+        // 保存文件页数信息
+        fileInfo = {
+            fileName: file.name,
+            pageCount: numPages
+        };
+        
         let text = '';
         
         for (let i = 1; i <= numPages; i++) {
@@ -194,7 +204,7 @@ async function startTranslation() {
     }
     
     if (!apiKey) {
-        alert('请输入DeepSeek API密钥');
+        alert('请输入API密钥');
         apiKeyInput.focus();
         return;
     }
@@ -202,6 +212,10 @@ async function startTranslation() {
     const blockSize = parseInt(blockSizeInput.value) || 300;
     textBlocks = splitTextIntoBlocks(extractedText, blockSize);
     translatedBlocks = new Array(textBlocks.length).fill(null);
+    
+    // 更新文件信息对象，添加分块阈值和分块数
+    fileInfo.blockSize = blockSize;
+    fileInfo.blockCount = textBlocks.length;
     
     updateStatus(`开始翻译 ${textBlocks.length} 个文本块...`, 75);
     loadingResult.classList.remove('hidden');
@@ -248,30 +262,22 @@ async function translateBlock(text, index) {
     }
 }
 
-// 调用DeepSeek API进行翻译
+// 调用Cloudflare Worker API进行翻译
 async function callDeepSeekAPI(text) {
-    const apiUrl = 'https://api.deepseek.com/v1/chat/completions';
+    const apiUrl = 'https://pdftranslate.lisongfeng.workers.dev';
     
-    const prompt = `请将以下英文文本翻译成中文，保持原文的格式和段落结构：\n\n${text}`;
-    
+    // 更新请求体，添加file_info字段
     const requestData = {
-        model: 'deepseek-chat',
-        messages: [
-            {
-                role: 'user',
-                content: prompt
-            }
-        ],
-        temperature: 0.3,
-        max_tokens: 4000
+        key: apiKey, // 可以是简单字符串或真正的Deepseek API key
+        text: text,
+        file_info: fileInfo
     };
     
     try {
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(requestData)
         });
@@ -281,10 +287,11 @@ async function callDeepSeekAPI(text) {
             throw new Error(`API错误: ${errorData.error?.message || response.statusText}`);
         }
         
+        // 解析Worker返回的标准OpenAI chat/completion响应JSON
         const data = await response.json();
         return data.choices[0].message.content;
     } catch (error) {
-        console.error('DeepSeek API调用失败:', error);
+        console.error('翻译API调用失败:', error);
         throw error;
     }
 }
