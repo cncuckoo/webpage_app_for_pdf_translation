@@ -267,8 +267,8 @@ async function translateBlock(text, index) {
 
 // 调用Cloudflare Worker API进行翻译
 async function callDeepSeekAPI(text) {
-    // const apiUrl = 'https://pdftranslate.lisongfeng.workers.dev';
-    const apiUrl = 'http://14.103.207.14:3000/';
+    const apiUrl = 'https://pdftranslate.lisongfeng.workers.dev';
+    // const apiUrl = 'http://14.103.207.14:3000/';
     // const apiUrl = 'http://localhost:3000/';
     
     
