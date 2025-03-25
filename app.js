@@ -251,6 +251,9 @@ async function startTranslation() {
 // 翻译单个文本块
 async function translateBlock(text, index) {
     try {
+        // 更新fileInfo对象，添加progress字段
+        fileInfo.progress = `${index + 1}/${textBlocks.length}`;
+        
         const translatedText = await callDeepSeekAPI(text);
         translatedBlocks[index] = translatedText;
         return translatedText;
