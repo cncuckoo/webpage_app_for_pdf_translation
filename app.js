@@ -221,7 +221,7 @@ async function startTranslation() {
     loadingResult.classList.remove('hidden');
     
     // 并发翻译，但限制并发数量
-    const concurrencyLimit = 3; // 同时最多发送3个请求
+    const concurrencyLimit = 15; // 同时最多发送15个请求
     const pendingBlocks = [...Array(textBlocks.length).keys()];
     const activePromises = new Set();
     
