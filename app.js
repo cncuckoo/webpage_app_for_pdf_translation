@@ -221,7 +221,7 @@ async function startTranslation() {
     loadingResult.classList.remove('hidden');
     
     // 并发翻译，但限制并发数量
-    const concurrencyLimit = 15; // 同时最多发送15个请求
+    const concurrencyLimit = 6; // 同时最多发送6个请求
     const pendingBlocks = [...Array(textBlocks.length).keys()];
     const activePromises = new Set();
     
@@ -268,9 +268,6 @@ async function translateBlock(text, index) {
 // 调用Cloudflare Worker API进行翻译
 async function callDeepSeekAPI(text) {
     const apiUrl = 'https://pdftranslate.lisongfeng.workers.dev';
-    // const apiUrl = 'http://14.103.207.14:3000/';
-    // const apiUrl = 'http://localhost:3000/';
-    
     
     // 更新请求体，添加file_info字段
     const requestData = {
