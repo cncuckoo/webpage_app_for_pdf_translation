@@ -220,6 +220,10 @@ async function startTranslation() {
     updateStatus(`开始翻译 ${textBlocks.length} 个文本块...`, 75);
     loadingResult.classList.remove('hidden');
     
+    // 准备翻译结果区域
+    translationResult.classList.remove('hidden');
+    translatedContent.innerHTML = '正在翻译中，请稍候...';
+    
     // 并发翻译，但限制并发数量
     const concurrencyLimit = 6; // 同时最多发送6个请求
     const pendingBlocks = [...Array(textBlocks.length).keys()];
@@ -232,8 +236,6 @@ async function startTranslation() {
             const promise = translateBlock(textBlocks[blockIndex], blockIndex)
                 .then(() => {
                     activePromises.delete(promise);
-                    const progress = 75 + (translatedBlocks.filter(b => b !== null).length / textBlocks.length) * 20;
-                    updateStatus(`已翻译 ${translatedBlocks.filter(b => b !== null).length}/${textBlocks.length} 个块`, progress);
                 });
             activePromises.add(promise);
         }
@@ -244,7 +246,7 @@ async function startTranslation() {
         }
     }
     
-    // 所有块都翻译完成后，显示结果
+    // 所有块都翻译完成后，显示最终结果
     displayTranslationResult();
 }
 
@@ -256,11 +258,19 @@ async function translateBlock(text, index) {
         
         const translatedText = await callDeepSeekAPI(text);
         translatedBlocks[index] = translatedText;
+        
+        // 立即更新UI显示这个翻译块
+        updateTranslationResult(index);
+        
         return translatedText;
     } catch (error) {
         console.error(`翻译块 ${index} 失败:`, error);
         // 重试逻辑可以在这里添加
         translatedBlocks[index] = `[翻译失败: ${error.message}]\n\n${text}`;
+        
+        // 即使失败也更新UI
+        updateTranslationResult(index);
+        
         return translatedBlocks[index];
     }
 }
@@ -299,15 +309,42 @@ async function callDeepSeekAPI(text) {
     }
 }
 
-// 显示翻译结果
+// 更新单个翻译块的显示
+function updateTranslationResult(index) {
+    // 确保翻译结果区域可见
+    if (translationResult.classList.contains('hidden')) {
+        translationResult.classList.remove('hidden');
+        loadingResult.classList.add('hidden');
+    }
+    
+    // 合并所有已翻译的块（过滤掉null值）
+    const validBlocks = translatedBlocks.filter(block => block !== null);
+    const fullTranslation = validBlocks.join('\n\n');
+    
+    // 将Markdown转换为HTML
+    const htmlContent = marked.parse(fullTranslation);
+    translatedContent.innerHTML = htmlContent;
+    
+    // 计算进度
+    const completedCount = validBlocks.length;
+    const totalCount = textBlocks.length;
+    const progress = 75 + (completedCount / totalCount) * 20;
+    
+    updateStatus(`已翻译 ${completedCount}/${totalCount} 个块`, progress);
+    
+    // 如果全部完成，更新最终状态
+    if (completedCount === totalCount) {
+        updateStatus('翻译完成！', 100);
+    }
+}
+
+// 显示最终翻译结果（所有块完成后调用）
 function displayTranslationResult() {
     updateStatus('翻译完成，正在生成结果...', 95);
     loadingResult.classList.add('hidden');
     
-    // 合并所有翻译块
+    // 最后一次更新UI
     const fullTranslation = translatedBlocks.join('\n\n');
-    
-    // 将Markdown转换为HTML
     const htmlContent = marked.parse(fullTranslation);
     translatedContent.innerHTML = htmlContent;
     
