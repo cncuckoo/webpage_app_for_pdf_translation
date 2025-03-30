@@ -69,14 +69,19 @@ function setupEventListeners() {
 // 处理文件选择
 function handleFileSelect(event) {
     const file = event.target.files[0];
-    if (file && file.type === 'application/pdf') {
+    if (file && (file.type === 'application/pdf' || file.name.endsWith('.md'))) {
         pdfFile = file;
         updateStatus('文件已选择: ' + file.name, 10);
         progressContainer.classList.remove('hidden');
         startTranslationBtn.classList.remove('hidden');
-        extractPdfText(file);
+        
+        if (file.type === 'application/pdf') {
+            extractPdfText(file);
+        } else if (file.name.endsWith('.md')) {
+            extractMarkdownText(file);
+        }
     } else {
-        alert('请选择有效的PDF文件');
+        alert('请选择有效的PDF或Markdown文件');
     }
 }
 
@@ -101,15 +106,20 @@ function handleFileDrop(event) {
     uploadArea.classList.remove('active');
     
     const file = event.dataTransfer.files[0];
-    if (file && file.type === 'application/pdf') {
+    if (file && (file.type === 'application/pdf' || file.name.endsWith('.md'))) {
         pdfFile = file;
         fileInput.files = event.dataTransfer.files;
         updateStatus('文件已上传: ' + file.name, 10);
         progressContainer.classList.remove('hidden');
         startTranslationBtn.classList.remove('hidden');
-        extractPdfText(file);
+        
+        if (file.type === 'application/pdf') {
+            extractPdfText(file);
+        } else if (file.name.endsWith('.md')) {
+            extractMarkdownText(file);
+        }
     } else {
-        alert('请拖放有效的PDF文件');
+        alert('请拖放有效的PDF或Markdown文件');
     }
 }
 
@@ -199,7 +209,7 @@ function splitTextIntoBlocks(text, blockSize) {
 // 开始翻译过程
 async function startTranslation() {
     if (!extractedText) {
-        alert('请先上传并处理PDF文件');
+        alert('请先上传并处理PDF或Markdown文件');
         return;
     }
     
@@ -277,7 +287,7 @@ async function translateBlock(text, index) {
 
 // 调用Cloudflare Worker API进行翻译
 async function callDeepSeekAPI(text) {
-    const apiUrl = 'https://pdftranslate.lisongfeng.workers.dev';
+    const apiUrl = 'https://worker.pdftranslate.fun';
     
     // 更新请求体，添加file_info字段
     const requestData = {
@@ -365,5 +375,40 @@ function readFileAsArrayBuffer(file) {
         reader.onload = () => resolve(reader.result);
         reader.onerror = reject;
         reader.readAsArrayBuffer(file);
+    });
+}
+
+// 从Markdown文件提取文本
+async function extractMarkdownText(file) {
+    updateStatus('正在读取Markdown文件...', 20);
+    
+    try {
+        // 保存文件信息
+        fileInfo = {
+            fileName: file.name,
+            fileType: 'markdown'
+        };
+        
+        // 使用FileReader读取文件内容
+        const text = await readFileAsText(file);
+        
+        // Markdown文件内容已经是文本格式，直接使用
+        extractedText = text;
+        updateStatus('文本读取完成，准备翻译', 50);
+        console.log('提取的文本:', extractedText.substring(0, 500) + '...');
+        
+    } catch (error) {
+        console.error('Markdown文件读取错误:', error);
+        updateStatus('Markdown文件读取失败: ' + error.message, 0);
+    }
+}
+
+// 将文件读取为文本
+function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsText(file);
     });
 }

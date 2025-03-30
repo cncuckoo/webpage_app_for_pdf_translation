@@ -70,6 +70,12 @@
         #apiKeyModal .modal-dialog {
             max-width: 500px;
         }
+        #translatedContent img {
+            width: 100%;
+        }
+        #translatedContent * {
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -90,9 +96,9 @@
                 </div>
                 <div id="uploadArea" class="upload-area">
                     <i class="bi bi-cloud-arrow-up fs-1"></i>
-                    <h4 class="mt-3">拖放PDF文件到这里</h4>
+                    <h4 class="mt-3">拖放PDF或Markdown文件到这里</h4>
                     <p>或者</p>
-                    <input type="file" id="fileInput" accept=".pdf" class="hidden">
+                    <input type="file" id="fileInput" accept=".pdf,.md" class="hidden">
                     <button class="btn btn-primary" id="browseButton">浏览文件</button>
                 </div>
                 <div class="progress-container hidden" id="progressContainer">
@@ -131,7 +137,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.0/marked.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
-    <script src="app.js?v=1743292323"></script>
+    <script src="app.js?v=1743340730"></script>
 </body>
 </html>
 
