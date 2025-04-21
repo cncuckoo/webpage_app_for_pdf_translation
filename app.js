@@ -79,6 +79,10 @@ function setupEventListeners() {
 
 // 处理文件选择
 function handleFileSelect(event) {
+    // 重置计时器
+    stopTimer();
+    document.getElementById('timerDisplay').textContent = '00:00';
+
     const file = event.target.files[0];
     if (file && (file.type === 'application/pdf' || file.name.endsWith('.md'))) {
         pdfFile = file;
@@ -112,6 +116,10 @@ function handleDragLeave(event) {
 
 // 处理文件拖放
 function handleFileDrop(event) {
+    // 重置计时器
+    stopTimer();
+    document.getElementById('timerDisplay').textContent = '00:00';
+
     event.preventDefault();
     event.stopPropagation();
     uploadArea.classList.remove('active');
@@ -219,6 +227,7 @@ function splitTextIntoBlocks(text, blockSize) {
 
 // 开始翻译过程
 async function startTranslation() {
+    startTimer(); // 开始计时
     // 禁用文件上传相关的UI元素
     browseButton.disabled = true;
     uploadArea.style.pointerEvents = 'none';
@@ -450,13 +459,14 @@ function displayTranslationResult() {
     );
 
     if (allBlocksProcessed) {
+        stopTimer(); // 停止计时器
         updateStatus('翻译完成，正在生成结果...', 95);
 
         // 最后一次更新所有块
         updateAllTranslationBlocks();
 
         translationResult.classList.remove('hidden');
-        updateStatus(`翻译完成（成功${completedCount}，失败${failedCount}）`, 100);
+        updateStatus(`翻译完成（共${totalCount}个块，成功${completedCount}，失败${failedCount}）`, 100);
 
         // 启用下载按钮
         downloadMarkdownBtn.disabled = false;
@@ -544,3 +554,42 @@ function readFileAsText(file) {
         reader.readAsText(file);
     });
 }
+
+// 计时器相关变量
+let timerInterval;
+let startTime;
+
+function updateTimer() {
+    const currentTime = Date.now();
+    const elapsedTime = Math.floor((currentTime - startTime) / 1000);
+    const minutes = Math.floor(elapsedTime / 60);
+    const seconds = elapsedTime % 60;
+    document.getElementById('timerDisplay').textContent =
+        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function startTimer() {
+    startTime = Date.now();
+    timerInterval = setInterval(updateTimer, 1000);
+    document.getElementById('timerIcon').classList.add('rotate-animation');
+}
+
+function stopTimer() {
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        document.getElementById('timerIcon').classList.remove('rotate-animation');
+    }
+}
+
+// 添加时钟图标旋转动画样式
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    .rotate-animation {
+        animation: rotate 2s linear infinite;
+    }
+`;
+document.head.appendChild(style);
