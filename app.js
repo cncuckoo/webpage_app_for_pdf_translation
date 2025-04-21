@@ -25,6 +25,7 @@ const translationResult = document.getElementById('translationResult');
 const translatedContent = document.getElementById('translatedContent');
 const apiKeyInput = document.getElementById('apiKeyInput');
 const toggleApiKey = document.getElementById('toggleApiKey');
+const downloadMarkdownBtn = document.getElementById('downloadMarkdownBtn');
 
 // 初始化事件监听器
 document.addEventListener('DOMContentLoaded', () => {
@@ -70,6 +71,9 @@ function setupEventListeners() {
             toggleApiKey.innerHTML = '<i class="bi bi-eye"></i>';
         }
     });
+
+    // 下载Markdown按钮
+    downloadMarkdownBtn.addEventListener('click', downloadTranslatedMarkdown);
 }
 
 // 处理文件选择
@@ -214,6 +218,9 @@ function splitTextIntoBlocks(text, blockSize) {
 
 // 开始翻译过程
 async function startTranslation() {
+    // 禁用下载按钮
+    downloadMarkdownBtn.disabled = true;
+
     if (!extractedText) {
         alert('请先上传并处理PDF或Markdown文件');
         return;
@@ -445,6 +452,34 @@ function displayTranslationResult() {
 
     translationResult.classList.remove('hidden');
     updateStatus('翻译完成！', 100);
+
+    // 启用下载按钮
+    downloadMarkdownBtn.disabled = false;
+}
+
+// 下载翻译结果为Markdown文件
+function downloadTranslatedMarkdown() {
+    // 收集所有已翻译的文本
+    const translatedText = translatedBlocks
+        .filter(block => block.status === BLOCK_STATUS.COMPLETED)
+        .map(block => block.content)
+        .join('\n\n');
+
+    // 创建Blob对象
+    const blob = new Blob([translatedText], { type: 'text/markdown;charset=utf-8' });
+
+    // 创建下载链接
+    const downloadLink = document.createElement('a');
+    downloadLink.href = URL.createObjectURL(blob);
+    downloadLink.download = `translated_${fileInfo.fileName.replace(/\.[^/.]+$/, '')}.md`;
+
+    // 触发下载
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+
+    // 清理URL对象
+    URL.revokeObjectURL(downloadLink.href);
 }
 
 // 更新状态和进度条
