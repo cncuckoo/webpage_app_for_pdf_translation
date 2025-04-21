@@ -218,6 +218,12 @@ function splitTextIntoBlocks(text, blockSize) {
 
 // 开始翻译过程
 async function startTranslation() {
+    // 禁用文件上传相关的UI元素
+    browseButton.disabled = true;
+    uploadArea.style.pointerEvents = 'none';
+    startTranslationBtn.disabled = true;
+    fileInput.disabled = true;
+
     // 禁用下载按钮
     downloadMarkdownBtn.disabled = true;
 
@@ -455,6 +461,12 @@ function displayTranslationResult() {
 
     // 启用下载按钮
     downloadMarkdownBtn.disabled = false;
+
+    // 恢复文件上传相关的UI元素
+    browseButton.disabled = false;
+    uploadArea.style.pointerEvents = 'auto';
+    startTranslationBtn.disabled = false;
+    fileInput.disabled = false;
 }
 
 // 下载翻译结果为Markdown文件
