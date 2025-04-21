@@ -320,8 +320,7 @@ ${text}`;
 
 // 调用Cloudflare Worker API进行翻译
 async function callDeepSeekAPI(text) {
-    // const apiUrl = 'https://worker.pdftranslate.fun';
-    const apiUrl = 'http://localhost:8787';
+    const apiUrl = 'https://worker.pdftranslate.fun';
 
     // 更新请求体，添加file_info字段
     const requestData = {
