@@ -9,7 +9,8 @@ let apiKey = '';
 const BLOCK_STATUS = {
     PENDING: 'pending',   // 待翻译
     TRANSLATING: 'translating', // 翻译中
-    COMPLETED: 'completed'  // 翻译完成
+    COMPLETED: 'completed',  // 翻译完成
+    FAILED: 'failed'    // 翻译失败
 };
 
 // DOM元素
@@ -242,10 +243,12 @@ async function startTranslation() {
     textBlocks = splitTextIntoBlocks(extractedText, blockSize);
 
     // 初始化翻译块为"待翻译"状态
-    translatedBlocks = textBlocks.map((_, index) => ({
+    translatedBlocks = textBlocks.map((text, index) => ({
         status: BLOCK_STATUS.PENDING,
         content: null,
-        index: index
+        index: index,
+        originalText: text,
+        error: null
     }));
 
     // 更新文件信息对象，添加分块阈值和分块数
@@ -289,42 +292,36 @@ async function startTranslation() {
 // 翻译单个文本块
 async function translateBlock(text, index) {
     try {
-        // 更新状态为"翻译中"
         translatedBlocks[index].status = BLOCK_STATUS.TRANSLATING;
-        // 更新UI显示
         updateTranslationBlock(index);
 
-        // 更新fileInfo对象，添加progress字段
         fileInfo.progress = `${index + 1}/${textBlocks.length}`;
-
-        // 调用API进行翻译
         const translatedText = await callDeepSeekAPI(text);
 
-        // 更新为"翻译完成"状态
         translatedBlocks[index].status = BLOCK_STATUS.COMPLETED;
         translatedBlocks[index].content = translatedText;
+        translatedBlocks[index].error = null;
 
-        // 更新UI显示这个翻译块
         updateTranslationBlock(index);
-
         return translatedText;
     } catch (error) {
         console.error(`翻译块 ${index} 失败:`, error);
 
-        // 更新为"翻译完成"状态，但内容为错误信息
-        translatedBlocks[index].status = BLOCK_STATUS.COMPLETED;
-        translatedBlocks[index].content = `[翻译失败: ${error.message}]\n\n${text}`;
+        translatedBlocks[index].status = BLOCK_STATUS.FAILED;
+        translatedBlocks[index].error = error.message;
+        translatedBlocks[index].content = `
+原文:
+${text}`;
 
-        // 即使失败也更新UI
         updateTranslationBlock(index);
-
         return translatedBlocks[index].content;
     }
 }
 
 // 调用Cloudflare Worker API进行翻译
 async function callDeepSeekAPI(text) {
-    const apiUrl = 'https://worker.pdftranslate.fun';
+    // const apiUrl = 'https://worker.pdftranslate.fun';
+    const apiUrl = 'http://localhost:8787';
 
     // 更新请求体，添加file_info字段
     const requestData = {
@@ -358,9 +355,8 @@ async function callDeepSeekAPI(text) {
 
 // 生成翻译块的HTML
 function generateBlockHTML(block) {
-    const { status, content, index } = block;
+    const { status, content, index, error } = block;
 
-    // 根据状态生成不同的HTML
     switch (status) {
         case BLOCK_STATUS.PENDING:
             return `<div class="translation-block pending" id="block-${index}">
@@ -375,27 +371,31 @@ function generateBlockHTML(block) {
                     <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
-                    <span>分块 ${index + 1}：翻译中...</span>
+                    <span>正在翻译分块 ${index + 1}...</span>
                 </div>
             </div>`;
 
         case BLOCK_STATUS.COMPLETED:
             if (content) {
-                // 将Markdown转换为HTML
                 const htmlContent = marked.parse(content);
                 return `<div class="translation-block completed" id="block-${index}">
                     <div class="block-content p-3">
                         <div class="block-text">${htmlContent}</div>
                     </div>
                 </div>`;
-            } else {
-                return `<div class="translation-block error" id="block-${index}">
-                    <div class="block-content p-3 my-3" style="border: 1px solid #ffcccc; border-radius: 5px; background-color: #fff8f8;">
-                        <div class="block-header mb-2 text-danger small">分块 ${index + 1}：翻译失败</div>
-                        <div class="block-text">无法获取翻译内容</div>
-                    </div>
-                </div>`;
             }
+            return '';
+
+        case BLOCK_STATUS.FAILED:
+            return `<div class="translation-block failed" id="block-${index}">
+                <div class="block-content p-3 my-3" style="border: 1px solid #ffcccc; border-radius: 5px; background-color: #fff8f8;">
+                    <div class="block-header mb-2 text-danger">
+                        <strong>分块 ${index + 1}：翻译失败</strong>
+                        <small class="d-block text-muted">${error}</small>
+                    </div>
+                    <div class="block-text">${marked.parse(content)}</div>
+                </div>
+            </div>`;
 
         default:
             return '';
@@ -409,21 +409,16 @@ function updateAllTranslationBlocks() {
         translationResult.classList.remove('hidden');
     }
 
-    // 生成所有块的HTML
     const allBlocksHTML = translatedBlocks.map(block => generateBlockHTML(block)).join('');
     translatedContent.innerHTML = allBlocksHTML;
 
-    // 计算进度
+    // 分别计算成功和失败的块数
     const completedCount = translatedBlocks.filter(block => block.status === BLOCK_STATUS.COMPLETED).length;
+    const failedCount = translatedBlocks.filter(block => block.status === BLOCK_STATUS.FAILED).length;
     const totalCount = textBlocks.length;
-    const progress = 75 + (completedCount / totalCount) * 20;
+    const progress = 75 + ((completedCount + failedCount) / totalCount) * 20;
 
-    updateStatus(`已翻译 ${completedCount}/${totalCount} 个块`, progress);
-
-    // 如果全部完成，更新最终状态
-    if (completedCount === totalCount) {
-        updateStatus('翻译完成！', 100);
-    }
+    updateStatus(`已翻译 ${completedCount}/${totalCount} 个块（${failedCount} 个失败）`, progress);
 }
 
 // 更新单个翻译块的显示
@@ -438,35 +433,41 @@ function updateTranslationBlock(index) {
 
     // 计算进度
     const completedCount = translatedBlocks.filter(block => block.status === BLOCK_STATUS.COMPLETED).length;
+    const failedCount = translatedBlocks.filter(block => block.status === BLOCK_STATUS.FAILED).length;
     const totalCount = textBlocks.length;
-    const progress = 75 + (completedCount / totalCount) * 20;
+    const progress = 75 + ((completedCount + failedCount) / totalCount) * 20;
 
-    updateStatus(`已翻译 ${completedCount}/${totalCount} 个块`, progress);
-
-    // 如果全部完成，更新最终状态
-    if (completedCount === totalCount) {
-        updateStatus('翻译完成！', 100);
-    }
+    updateStatus(`已翻译 ${completedCount}/${totalCount} 个块（${failedCount} 个失败）`, progress);
 }
 
 // 显示最终翻译结果（所有块完成后调用）
 function displayTranslationResult() {
-    updateStatus('翻译完成，正在生成结果...', 95);
+    // 检查所有块的状态
+    const completedCount = translatedBlocks.filter(block => block.status === BLOCK_STATUS.COMPLETED).length;
+    const failedCount = translatedBlocks.filter(block => block.status === BLOCK_STATUS.FAILED).length;
+    const totalCount = textBlocks.length;
+    const allBlocksProcessed = translatedBlocks.every(block =>
+        block.status === BLOCK_STATUS.COMPLETED || block.status === BLOCK_STATUS.FAILED
+    );
 
-    // 最后一次更新所有块
-    updateAllTranslationBlocks();
+    if (allBlocksProcessed) {
+        updateStatus('翻译完成，正在生成结果...', 95);
 
-    translationResult.classList.remove('hidden');
-    updateStatus('翻译完成！', 100);
+        // 最后一次更新所有块
+        updateAllTranslationBlocks();
 
-    // 启用下载按钮
-    downloadMarkdownBtn.disabled = false;
+        translationResult.classList.remove('hidden');
+        updateStatus(`翻译完成（成功${completedCount}，失败${failedCount}）`, 100);
 
-    // 恢复文件上传相关的UI元素
-    browseButton.disabled = false;
-    uploadArea.style.pointerEvents = 'auto';
-    startTranslationBtn.disabled = false;
-    fileInput.disabled = false;
+        // 启用下载按钮
+        downloadMarkdownBtn.disabled = false;
+
+        // 恢复文件上传相关的UI元素
+        browseButton.disabled = false;
+        uploadArea.style.pointerEvents = 'auto';
+        startTranslationBtn.disabled = false;
+        fileInput.disabled = false;
+    }
 }
 
 // 下载翻译结果为Markdown文件
