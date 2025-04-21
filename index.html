@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,26 +14,32 @@
             height: 100vh;
             overflow: hidden;
         }
+
         .container-fluid {
             height: 100vh;
             padding: 0;
         }
+
         .row {
             height: 100%;
             margin: 0;
         }
+
         .col-6 {
             padding: 20px;
             height: 100%;
             overflow-y: auto;
         }
+
         .left-panel {
             border-right: 1px solid #dee2e6;
             background-color: #f8f9fa;
         }
+
         .right-panel {
             background-color: #ffffff;
         }
+
         .upload-area {
             border: 2px dashed #adb5bd;
             border-radius: 5px;
@@ -42,21 +49,26 @@
             cursor: pointer;
             transition: all 0.3s;
         }
+
         .upload-area:hover {
             border-color: #0d6efd;
             background-color: rgba(13, 110, 253, 0.05);
         }
+
         .upload-area.active {
             border-color: #0d6efd;
             background-color: rgba(13, 110, 253, 0.1);
         }
+
         .progress-container {
             margin-top: 20px;
         }
+
         .status-message {
             margin-top: 10px;
             font-weight: bold;
         }
+
         .translation-result {
             padding: 15px;
             border-radius: 5px;
@@ -64,20 +76,25 @@
             margin-top: 20px;
             margin-bottom: 20px;
         }
+
         .hidden {
             display: none;
         }
+
         #apiKeyModal .modal-dialog {
             max-width: 500px;
         }
+
         #translatedContent img {
             width: 100%;
         }
+
         #translatedContent * {
             word-break: break-all;
         }
     </style>
 </head>
+
 <body>
     <div class="container-fluid">
         <div class="row">
@@ -92,7 +109,8 @@
                             <i class="bi bi-eye"></i>
                         </button>
                     </div>
-                    <div class="form-text">请填写您的专有密钥或者DeepSeek API Key（<a href="https://platform.deepseek.com/" target="_blank">点此注册＋创建</a>）</div>
+                    <div class="form-text">请填写您的专有密钥或者DeepSeek API Key（<a href="https://platform.deepseek.com/"
+                            target="_blank">点此注册＋创建</a>）</div>
                 </div>
                 <div id="uploadArea" class="upload-area">
                     <i class="bi bi-cloud-arrow-up fs-1"></i>
@@ -103,7 +121,8 @@
                 </div>
                 <div class="progress-container hidden" id="progressContainer">
                     <div class="progress" style="height: 20px;">
-                        <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;"></div>
+                        <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                            role="progressbar" style="width: 0%;"></div>
                     </div>
                     <p id="statusMessage" class="status-message mt-2">准备就绪</p>
                 </div>
@@ -115,18 +134,12 @@
                     <button id="startTranslationBtn" class="btn btn-success w-100 mt-3 hidden">开始翻译</button>
                 </div>
             </div>
-            
+
             <!-- 右侧面板：翻译结果显示区域 -->
             <div class="col-6 right-panel">
                 <h2 class="mb-4">翻译结果</h2>
                 <div id="translationResult" class="translation-result hidden">
                     <div id="translatedContent"></div>
-                </div>
-                <div id="loadingResult" class="text-center hidden">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">加载中...</span>
-                    </div>
-                    <p class="mt-2">正在处理翻译结果...</p>
                 </div>
             </div>
         </div>
@@ -136,10 +149,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.0/marked.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
-    <script src="app.js?v=1743340730"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css"
+        rel="stylesheet">
+    <script src="app.js?v=1743340731"></script>
 </body>
+
 </html>
-
-
-

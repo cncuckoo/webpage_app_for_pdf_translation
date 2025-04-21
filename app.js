@@ -5,6 +5,13 @@ let textBlocks = [];
 let translatedBlocks = [];
 let apiKey = '';
 
+// 翻译块状态常量
+const BLOCK_STATUS = {
+    PENDING: 'pending',   // 待翻译
+    TRANSLATING: 'translating', // 翻译中
+    COMPLETED: 'completed'  // 翻译完成
+};
+
 // DOM元素
 const fileInput = document.getElementById('fileInput');
 const uploadArea = document.getElementById('uploadArea');
@@ -16,7 +23,6 @@ const startTranslationBtn = document.getElementById('startTranslationBtn');
 const blockSizeInput = document.getElementById('blockSizeInput');
 const translationResult = document.getElementById('translationResult');
 const translatedContent = document.getElementById('translatedContent');
-const loadingResult = document.getElementById('loadingResult');
 const apiKeyInput = document.getElementById('apiKeyInput');
 const toggleApiKey = document.getElementById('toggleApiKey');
 
@@ -24,7 +30,7 @@ const toggleApiKey = document.getElementById('toggleApiKey');
 document.addEventListener('DOMContentLoaded', () => {
     // 设置PDF.js worker路径
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-    
+
     // 从localStorage加载API密钥（如果有）
     const savedApiKey = localStorage.getItem('deepseekApiKey');
     if (savedApiKey) {
@@ -44,16 +50,16 @@ function setupEventListeners() {
     uploadArea.addEventListener('dragover', handleDragOver);
     uploadArea.addEventListener('dragleave', handleDragLeave);
     uploadArea.addEventListener('drop', handleFileDrop);
-    
+
     // 开始翻译按钮
     startTranslationBtn.addEventListener('click', startTranslation);
-    
+
     // API密钥相关
     apiKeyInput.addEventListener('input', () => {
         apiKey = apiKeyInput.value.trim();
         localStorage.setItem('deepseekApiKey', apiKey);
     });
-    
+
     // 切换API密钥可见性
     toggleApiKey.addEventListener('click', () => {
         if (apiKeyInput.type === 'password') {
@@ -74,7 +80,7 @@ function handleFileSelect(event) {
         updateStatus('文件已选择: ' + file.name, 10);
         progressContainer.classList.remove('hidden');
         startTranslationBtn.classList.remove('hidden');
-        
+
         if (file.type === 'application/pdf') {
             extractPdfText(file);
         } else if (file.name.endsWith('.md')) {
@@ -104,7 +110,7 @@ function handleFileDrop(event) {
     event.preventDefault();
     event.stopPropagation();
     uploadArea.classList.remove('active');
-    
+
     const file = event.dataTransfer.files[0];
     if (file && (file.type === 'application/pdf' || file.name.endsWith('.md'))) {
         pdfFile = file;
@@ -112,7 +118,7 @@ function handleFileDrop(event) {
         updateStatus('文件已上传: ' + file.name, 10);
         progressContainer.classList.remove('hidden');
         startTranslationBtn.classList.remove('hidden');
-        
+
         if (file.type === 'application/pdf') {
             extractPdfText(file);
         } else if (file.name.endsWith('.md')) {
@@ -129,20 +135,20 @@ let fileInfo = null;
 // 从PDF提取文本
 async function extractPdfText(file) {
     updateStatus('正在解析PDF文件...', 20);
-    
+
     try {
         const arrayBuffer = await readFileAsArrayBuffer(file);
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         const numPages = pdf.numPages;
-        
+
         // 保存文件页数信息
         fileInfo = {
             fileName: file.name,
             pageCount: numPages
         };
-        
+
         let text = '';
-        
+
         for (let i = 1; i <= numPages; i++) {
             updateStatus(`正在提取文本 (页面 ${i}/${numPages})`, 20 + (i / numPages) * 30);
             const page = await pdf.getPage(i);
@@ -150,12 +156,12 @@ async function extractPdfText(file) {
             const pageText = textContent.items.map(item => item.str).join(' ');
             text += pageText + '\n\n';
         }
-        
+
         // 转换为Markdown格式（简单处理）
         extractedText = convertToMarkdown(text);
         updateStatus('文本提取完成，准备翻译', 50);
         console.log('提取的文本:', extractedText.substring(0, 500) + '...');
-        
+
     } catch (error) {
         console.error('PDF解析错误:', error);
         updateStatus('PDF解析失败: ' + error.message, 0);
@@ -173,15 +179,15 @@ function convertToMarkdown(text) {
 // 将文本分块，确保每块包含完整段落
 function splitTextIntoBlocks(text, blockSize) {
     updateStatus('正在进行文本分块...', 60);
-    
+
     const paragraphs = text.split(/\n\n/);
     const blocks = [];
     let currentBlock = '';
     let currentWordCount = 0;
-    
+
     for (const paragraph of paragraphs) {
         const paragraphWordCount = paragraph.split(/\s+/).length;
-        
+
         // 如果当前段落加上已有内容超过了块大小，并且当前块不为空，则创建新块
         if (currentWordCount + paragraphWordCount > blockSize && currentBlock !== '') {
             blocks.push(currentBlock.trim());
@@ -196,12 +202,12 @@ function splitTextIntoBlocks(text, blockSize) {
             currentWordCount += paragraphWordCount;
         }
     }
-    
+
     // 添加最后一个块
     if (currentBlock !== '') {
         blocks.push(currentBlock.trim());
     }
-    
+
     updateStatus(`文本已分为 ${blocks.length} 个块`, 70);
     return blocks;
 }
@@ -212,33 +218,40 @@ async function startTranslation() {
         alert('请先上传并处理PDF或Markdown文件');
         return;
     }
-    
+
     if (!apiKey) {
         alert('请输入API密钥');
         apiKeyInput.focus();
         return;
     }
-    
+
     const blockSize = parseInt(blockSizeInput.value) || 300;
     textBlocks = splitTextIntoBlocks(extractedText, blockSize);
-    translatedBlocks = new Array(textBlocks.length).fill(null);
-    
+
+    // 初始化翻译块为"待翻译"状态
+    translatedBlocks = textBlocks.map((_, index) => ({
+        status: BLOCK_STATUS.PENDING,
+        content: null,
+        index: index
+    }));
+
     // 更新文件信息对象，添加分块阈值和分块数
     fileInfo.blockSize = blockSize;
     fileInfo.blockCount = textBlocks.length;
-    
+
     updateStatus(`开始翻译 ${textBlocks.length} 个文本块...`, 75);
-    loadingResult.classList.remove('hidden');
-    
+
     // 准备翻译结果区域
     translationResult.classList.remove('hidden');
-    translatedContent.innerHTML = '正在翻译中，请稍候...';
-    
+
+    // 显示所有待翻译块
+    updateAllTranslationBlocks();
+
     // 并发翻译，但限制并发数量
     const concurrencyLimit = 6; // 同时最多发送6个请求
     const pendingBlocks = [...Array(textBlocks.length).keys()];
     const activePromises = new Set();
-    
+
     while (pendingBlocks.length > 0 || activePromises.size > 0) {
         // 填充活跃请求直到达到并发限制
         while (pendingBlocks.length > 0 && activePromises.size < concurrencyLimit) {
@@ -249,13 +262,13 @@ async function startTranslation() {
                 });
             activePromises.add(promise);
         }
-        
+
         // 等待任意一个请求完成
         if (activePromises.size > 0) {
             await Promise.race(Array.from(activePromises));
         }
     }
-    
+
     // 所有块都翻译完成后，显示最终结果
     displayTranslationResult();
 }
@@ -263,39 +276,50 @@ async function startTranslation() {
 // 翻译单个文本块
 async function translateBlock(text, index) {
     try {
+        // 更新状态为"翻译中"
+        translatedBlocks[index].status = BLOCK_STATUS.TRANSLATING;
+        // 更新UI显示
+        updateTranslationBlock(index);
+
         // 更新fileInfo对象，添加progress字段
         fileInfo.progress = `${index + 1}/${textBlocks.length}`;
-        
+
+        // 调用API进行翻译
         const translatedText = await callDeepSeekAPI(text);
-        translatedBlocks[index] = translatedText;
-        
-        // 立即更新UI显示这个翻译块
-        updateTranslationResult(index);
-        
+
+        // 更新为"翻译完成"状态
+        translatedBlocks[index].status = BLOCK_STATUS.COMPLETED;
+        translatedBlocks[index].content = translatedText;
+
+        // 更新UI显示这个翻译块
+        updateTranslationBlock(index);
+
         return translatedText;
     } catch (error) {
         console.error(`翻译块 ${index} 失败:`, error);
-        // 重试逻辑可以在这里添加
-        translatedBlocks[index] = `[翻译失败: ${error.message}]\n\n${text}`;
-        
+
+        // 更新为"翻译完成"状态，但内容为错误信息
+        translatedBlocks[index].status = BLOCK_STATUS.COMPLETED;
+        translatedBlocks[index].content = `[翻译失败: ${error.message}]\n\n${text}`;
+
         // 即使失败也更新UI
-        updateTranslationResult(index);
-        
-        return translatedBlocks[index];
+        updateTranslationBlock(index);
+
+        return translatedBlocks[index].content;
     }
 }
 
 // 调用Cloudflare Worker API进行翻译
 async function callDeepSeekAPI(text) {
     const apiUrl = 'https://worker.pdftranslate.fun';
-    
+
     // 更新请求体，添加file_info字段
     const requestData = {
         key: apiKey, // 可以是简单字符串或真正的Deepseek API key
         text: text,
         file_info: fileInfo
     };
-    
+
     try {
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -304,12 +328,12 @@ async function callDeepSeekAPI(text) {
             },
             body: JSON.stringify(requestData)
         });
-        
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(`API错误: ${errorData.error?.message || response.statusText}`);
         }
-        
+
         // 解析Worker返回的标准OpenAI chat/completion响应JSON
         const data = await response.json();
         return data.choices[0].message.content;
@@ -319,29 +343,93 @@ async function callDeepSeekAPI(text) {
     }
 }
 
-// 更新单个翻译块的显示
-function updateTranslationResult(index) {
+// 生成翻译块的HTML
+function generateBlockHTML(block) {
+    const { status, content, index } = block;
+
+    // 根据状态生成不同的HTML
+    switch (status) {
+        case BLOCK_STATUS.PENDING:
+            return `<div class="translation-block pending" id="block-${index}">
+                <div class="block-content text-center p-3 my-3" style="background-color: #f0f0f0; border-radius: 5px;">
+                    <p class="mb-0">分块 ${index + 1}：待翻译</p>
+                </div>
+            </div>`;
+
+        case BLOCK_STATUS.TRANSLATING:
+            return `<div class="translation-block translating" id="block-${index}">
+                <div class="block-content text-center p-3 my-3" style="background-color: #e8f4ff; border-radius: 5px;">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>分块 ${index + 1}：翻译中...</span>
+                </div>
+            </div>`;
+
+        case BLOCK_STATUS.COMPLETED:
+            if (content) {
+                // 将Markdown转换为HTML
+                const htmlContent = marked.parse(content);
+                return `<div class="translation-block completed" id="block-${index}">
+                    <div class="block-content p-3">
+                        <div class="block-text">${htmlContent}</div>
+                    </div>
+                </div>`;
+            } else {
+                return `<div class="translation-block error" id="block-${index}">
+                    <div class="block-content p-3 my-3" style="border: 1px solid #ffcccc; border-radius: 5px; background-color: #fff8f8;">
+                        <div class="block-header mb-2 text-danger small">分块 ${index + 1}：翻译失败</div>
+                        <div class="block-text">无法获取翻译内容</div>
+                    </div>
+                </div>`;
+            }
+
+        default:
+            return '';
+    }
+}
+
+// 更新所有翻译块的显示
+function updateAllTranslationBlocks() {
     // 确保翻译结果区域可见
     if (translationResult.classList.contains('hidden')) {
         translationResult.classList.remove('hidden');
-        loadingResult.classList.add('hidden');
     }
-    
-    // 合并所有已翻译的块（过滤掉null值）
-    const validBlocks = translatedBlocks.filter(block => block !== null);
-    const fullTranslation = validBlocks.join('\n\n');
-    
-    // 将Markdown转换为HTML
-    const htmlContent = marked.parse(fullTranslation);
-    translatedContent.innerHTML = htmlContent;
-    
+
+    // 生成所有块的HTML
+    const allBlocksHTML = translatedBlocks.map(block => generateBlockHTML(block)).join('');
+    translatedContent.innerHTML = allBlocksHTML;
+
     // 计算进度
-    const completedCount = validBlocks.length;
+    const completedCount = translatedBlocks.filter(block => block.status === BLOCK_STATUS.COMPLETED).length;
     const totalCount = textBlocks.length;
     const progress = 75 + (completedCount / totalCount) * 20;
-    
+
     updateStatus(`已翻译 ${completedCount}/${totalCount} 个块`, progress);
-    
+
+    // 如果全部完成，更新最终状态
+    if (completedCount === totalCount) {
+        updateStatus('翻译完成！', 100);
+    }
+}
+
+// 更新单个翻译块的显示
+function updateTranslationBlock(index) {
+    const blockElement = document.getElementById(`block-${index}`);
+    if (blockElement) {
+        blockElement.outerHTML = generateBlockHTML(translatedBlocks[index]);
+    } else {
+        // 如果元素不存在，更新所有块
+        updateAllTranslationBlocks();
+    }
+
+    // 计算进度
+    const completedCount = translatedBlocks.filter(block => block.status === BLOCK_STATUS.COMPLETED).length;
+    const totalCount = textBlocks.length;
+    const progress = 75 + (completedCount / totalCount) * 20;
+
+    updateStatus(`已翻译 ${completedCount}/${totalCount} 个块`, progress);
+
     // 如果全部完成，更新最终状态
     if (completedCount === totalCount) {
         updateStatus('翻译完成！', 100);
@@ -351,13 +439,10 @@ function updateTranslationResult(index) {
 // 显示最终翻译结果（所有块完成后调用）
 function displayTranslationResult() {
     updateStatus('翻译完成，正在生成结果...', 95);
-    loadingResult.classList.add('hidden');
-    
-    // 最后一次更新UI
-    const fullTranslation = translatedBlocks.join('\n\n');
-    const htmlContent = marked.parse(fullTranslation);
-    translatedContent.innerHTML = htmlContent;
-    
+
+    // 最后一次更新所有块
+    updateAllTranslationBlocks();
+
     translationResult.classList.remove('hidden');
     updateStatus('翻译完成！', 100);
 }
@@ -381,22 +466,22 @@ function readFileAsArrayBuffer(file) {
 // 从Markdown文件提取文本
 async function extractMarkdownText(file) {
     updateStatus('正在读取Markdown文件...', 20);
-    
+
     try {
         // 保存文件信息
         fileInfo = {
             fileName: file.name,
             fileType: 'markdown'
         };
-        
+
         // 使用FileReader读取文件内容
         const text = await readFileAsText(file);
-        
+
         // Markdown文件内容已经是文本格式，直接使用
         extractedText = text;
         updateStatus('文本读取完成，准备翻译', 50);
         console.log('提取的文本:', extractedText.substring(0, 500) + '...');
-        
+
     } catch (error) {
         console.error('Markdown文件读取错误:', error);
         updateStatus('Markdown文件读取失败: ' + error.message, 0);
