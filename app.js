@@ -4,6 +4,8 @@ let extractedText = '';
 let textBlocks = [];
 let translatedBlocks = [];
 let apiKey = '';
+let prompt = '';
+
 const blockSize = 500;
 
 // 翻译块状态常量
@@ -25,6 +27,7 @@ const startTranslationBtn = document.getElementById('startTranslationBtn');
 const translationResult = document.getElementById('translationResult');
 const translatedContent = document.getElementById('translatedContent');
 const apiKeyInput = document.getElementById('apiKeyInput');
+const promptInput = document.getElementById('prompt');
 const toggleApiKey = document.getElementById('toggleApiKey');
 const downloadMarkdownBtn = document.getElementById('downloadMarkdownBtn');
 
@@ -38,6 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedApiKey) {
         apiKeyInput.value = savedApiKey;
         apiKey = savedApiKey;
+    }
+    // 从localStorage加载提示（如果有）
+    const savedPrompt = localStorage.getItem('translationPrompt');
+    if (savedPrompt) {
+        promptInput.value = savedPrompt;
+        prompt = savedPrompt;
     }
 
     // 设置事件监听器
@@ -55,11 +64,15 @@ function setupEventListeners() {
 
     // 开始翻译按钮
     startTranslationBtn.addEventListener('click', startTranslation);
-
     // API密钥相关
     apiKeyInput.addEventListener('input', () => {
         apiKey = apiKeyInput.value.trim();
         localStorage.setItem('deepseekApiKey', apiKey);
+    });
+    // 提示输入框
+    promptInput.addEventListener('input', () => {
+        prompt = promptInput.value.trim();
+        localStorage.setItem('translationPrompt', prompt);
     });
 
     // 切换API密钥可见性
@@ -333,13 +346,14 @@ ${text}`;
 
 // 调用Cloudflare Worker API进行翻译
 async function callDeepSeekAPI(text) {
-    const apiUrl = 'https://worker.pdftranslate.fun';
-
+    // const apiUrl = 'https://worker.pdftranslate.fun';
+    const apiUrl = 'http://localhost:8787';
     // 更新请求体，添加file_info字段
     const requestData = {
-        key: apiKey, // 可以是简单字符串或真正的Deepseek API key
+        key: apiKey,
         text: text,
-        file_info: fileInfo
+        file_info: fileInfo,
+        prompt: prompt  // 添加prompt字段
     };
 
     try {
