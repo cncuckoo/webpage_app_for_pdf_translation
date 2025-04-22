@@ -243,7 +243,7 @@ async function startTranslation() {
     }
 
     if (!apiKey) {
-        alert('请输入API密钥');
+        alert('请输入密钥');
         apiKeyInput.focus();
         return;
     }

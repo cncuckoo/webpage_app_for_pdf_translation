@@ -119,54 +119,53 @@
                 <div class="form-text">如需拆分PDF，可使用<a href="https://grand-selkie-4f233f.netlify.app/"
                         target="_blank">这个工具</a>（数据只在本地处理，安全高效）</div>
                 <div class="my-3">
-                    <label for="apiKeyInput" class="form-label">API Key</label>
+                    <label for="apiKeyInput" class="form-label">密钥</label>
                     <div class="input-group">
-                        <input type="password" class="form-control" id="apiKeyInput" placeholder="输入您的API密钥">
+                        <input type="password" class="form-control" id="apiKeyInput" placeholder="请输入密钥">
                         <button class="btn btn-outline-secondary" type="button" id="toggleApiKey">
                             <i class="bi bi-eye"></i>
                         </button>
                     </div>
-                    <div class="form-text">请填写您的专有密钥/div>
-                    </div>
-                    <div class="progress-container hidden" id="progressContainer">
-                        <div class="progress" style="height: 20px;">
-                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated"
-                                role="progressbar" style="width: 0%;">
-                                <div class="d-flex align-items-center justify-content-end px-2" style="height: 100%;">
-                                    <i class="bi bi-clock me-1" id="timerIcon"></i>
-                                    <span id="timerDisplay">00:00</span>
-                                </div>
+                </div>
+                <div class="progress-container hidden" id="progressContainer">
+                    <div class="progress" style="height: 20px;">
+                        <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                            role="progressbar" style="width: 0%;">
+                            <div class="d-flex align-items-center justify-content-end px-2" style="height: 100%;">
+                                <i class="bi bi-clock me-1" id="timerIcon"></i>
+                                <span id="timerDisplay">00:00</span>
                             </div>
                         </div>
-                        <p id="statusMessage" class="status-message mt-2">准备就绪</p>
                     </div>
-                    <div class="mt-3">
-                        <button id="startTranslationBtn" class="btn btn-success w-100 mt-3 hidden">开始翻译</button>
-                    </div>
+                    <p id="statusMessage" class="status-message mt-2">准备就绪</p>
                 </div>
+                <div class="mt-3">
+                    <button id="startTranslationBtn" class="btn btn-success w-100 mt-3 hidden">开始翻译</button>
+                </div>
+            </div>
 
-                <!-- 右侧面板：翻译结果显示区域 -->
-                <div class="panel right-panel">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h4 class="mb-0">翻译结果</h4>
-                        <button id="downloadMarkdownBtn" class="btn btn-outline-primary" disabled>
-                            <i class="bi bi-download me-1"></i>下载为Markdown
-                        </button>
-                    </div>
-                    <div id="translationResult" class="translation-result hidden">
-                        <div id="translatedContent"></div>
-                    </div>
+            <!-- 右侧面板：翻译结果显示区域 -->
+            <div class="panel right-panel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="mb-0">翻译结果</h4>
+                    <button id="downloadMarkdownBtn" class="btn btn-outline-primary" disabled>
+                        <i class="bi bi-download me-1"></i>下载为Markdown
+                    </button>
+                </div>
+                <div id="translationResult" class="translation-result hidden">
+                    <div id="translatedContent"></div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- 引入必要的JavaScript库 -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.0/marked.min.js"></script>
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css"
-            rel="stylesheet">
-        <script src="app.js?v=202504221028"></script>
+    <!-- 引入必要的JavaScript库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.0/marked.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css"
+        rel="stylesheet">
+    <script src="app.js?v=202504221035"></script>
 </body>
 
 </html>
