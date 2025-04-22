@@ -4,6 +4,7 @@ let extractedText = '';
 let textBlocks = [];
 let translatedBlocks = [];
 let apiKey = '';
+const blockSize = 500;
 
 // 翻译块状态常量
 const BLOCK_STATUS = {
@@ -21,7 +22,6 @@ const progressBar = document.getElementById('progressBar');
 const statusMessage = document.getElementById('statusMessage');
 const progressContainer = document.getElementById('progressContainer');
 const startTranslationBtn = document.getElementById('startTranslationBtn');
-const blockSizeInput = document.getElementById('blockSizeInput');
 const translationResult = document.getElementById('translationResult');
 const translatedContent = document.getElementById('translatedContent');
 const apiKeyInput = document.getElementById('apiKeyInput');
@@ -248,7 +248,7 @@ async function startTranslation() {
         return;
     }
 
-    const blockSize = parseInt(blockSizeInput.value) || 300;
+
     textBlocks = splitTextIntoBlocks(extractedText, blockSize);
 
     // 初始化翻译块为"待翻译"状态
