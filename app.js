@@ -98,6 +98,8 @@ function handleFileSelect(event) {
     } else {
         alert('请选择有效的PDF或Markdown文件');
     }
+
+    startTranslationBtn.disabled = false;
 }
 
 // 处理拖拽悬停
@@ -140,6 +142,7 @@ function handleFileDrop(event) {
     } else {
         alert('请拖放有效的PDF或Markdown文件');
     }
+    startTranslationBtn.disabled = false;
 }
 
 // 全局变量用于存储PDF文件信息
@@ -227,15 +230,12 @@ function splitTextIntoBlocks(text, blockSize) {
 
 // 开始翻译过程
 async function startTranslation() {
-    startTimer(); // 开始计时
+
     // 禁用文件上传相关的UI元素
     browseButton.disabled = true;
     uploadArea.style.pointerEvents = 'none';
-    startTranslationBtn.disabled = true;
-    fileInput.disabled = true;
 
-    // 禁用下载按钮
-    downloadMarkdownBtn.disabled = true;
+    fileInput.disabled = true;
 
     if (!extractedText) {
         alert('请先上传并处理PDF或Markdown文件');
@@ -248,6 +248,10 @@ async function startTranslation() {
         return;
     }
 
+    startTimer(); // 开始计时
+    // 禁用下载按钮、禁用开始翻译按钮
+    downloadMarkdownBtn.disabled = true;
+    startTranslationBtn.disabled = true;
 
     textBlocks = splitTextIntoBlocks(extractedText, blockSize);
 
