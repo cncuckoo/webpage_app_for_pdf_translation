@@ -353,7 +353,7 @@ async function callDeepSeekAPI(text) {
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(`API错误: ${errorData.error?.message || response.statusText}`);
+            throw new Error(`错误${response.status}: ${errorData.message || response.statusText}`);
         }
 
         // 解析Worker返回的标准OpenAI chat/completion响应JSON
