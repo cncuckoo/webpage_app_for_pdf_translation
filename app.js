@@ -251,7 +251,7 @@ async function startTranslation() {
     fileInput.disabled = true;
 
     if (!extractedText) {
-        alert('请先上传并处理PDF或Markdown文件');
+        alert('遇到问题了：没有提取的文本。请联系lisongfeng。');
         return;
     }
 
