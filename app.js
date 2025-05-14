@@ -5,7 +5,7 @@ let textBlocks = [];
 let translatedBlocks = [];
 let apiKey = '';
 let prompt = '';
-
+const concurrencyLimit = 9;
 const blockSize = 500;
 
 // 翻译块状态常量
@@ -290,7 +290,6 @@ async function startTranslation() {
     updateAllTranslationBlocks();
 
     // 并发翻译，但限制并发数量
-    const concurrencyLimit = 6; // 同时最多发送6个请求
     const pendingBlocks = [...Array(textBlocks.length).keys()];
     const activePromises = new Set();
 
