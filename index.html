@@ -116,7 +116,7 @@
                     <input type="file" id="fileInput" accept=".pdf,.md" class="hidden">
                     <button class="btn btn-primary" id="browseButton">浏览文件</button>
                 </div>
-                <div class="form-text">如需拆分PDF，可使用<a href="https://grand-selkie-4f233f.netlify.app/"
+                <div class="form-text">* 如需拆分PDF，可使用<a href="https://grand-selkie-4f233f.netlify.app/"
                         target="_blank">这个工具</a>（数据只在本地处理，安全高效）</div>
                 <div class="my-3">
                     <label for="apiKeyInput" class="form-label">密钥（必填）</label>
@@ -128,9 +128,10 @@
                     </div>
                 </div>
                 <div class="my-3">
-                    <label for="prompt" class="form-label">系统提示词（选填，限300字）</label>
+                    <label for="prompt" class="form-label">提示词（选填）</label>
                     <textarea class="form-control" id="prompt" rows="2" maxlength="300"
-                        placeholder="请输入自定义系统提示词"></textarea>
+                        placeholder="一般不必填写（若确需给模型特殊指令，最多300字）"></textarea>
+                    <div class="form-text">* 不填写则使用默认提示词：“请将以下英文文本翻译成中文，保留Markdown格式。注意：只返回译文，不返回任何其他无关内容。”</div>
                 </div>
                 <div class="progress-container hidden" id="progressContainer">
                     <div class="progress" style="height: 20px;">
