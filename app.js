@@ -5,10 +5,14 @@ let textBlocks = [];
 let translatedBlocks = [];
 let apiKey = '';
 let prompt = '';
+let webUrl = '';
 const concurrencyLimit = 9;
 const blockSize = 500;
 const apiUrl = 'https://worker.pdftranslate.fun';
-
+// WebInk API URL
+const webInkApiUrl = 'https://webink.app/api/markdown';
+// Use a CORS proxy service
+const corsProxyUrl = 'https://api.allorigins.win/raw?url=';
 // 翻译块状态常量
 const BLOCK_STATUS = {
     PENDING: 'pending',   // 待翻译
@@ -31,6 +35,8 @@ const apiKeyInput = document.getElementById('apiKeyInput');
 const promptInput = document.getElementById('prompt');
 const toggleApiKey = document.getElementById('toggleApiKey');
 const downloadMarkdownBtn = document.getElementById('downloadMarkdownBtn');
+const urlInput = document.getElementById('urlInput');
+const clearUrlBtn = document.getElementById('clearUrl');
 
 // 初始化事件监听器
 document.addEventListener('DOMContentLoaded', () => {
@@ -63,12 +69,21 @@ function setupEventListeners() {
     uploadArea.addEventListener('dragleave', handleDragLeave);
     uploadArea.addEventListener('drop', handleFileDrop);
 
+    // 网址输入相关事件
+    urlInput.addEventListener('input', handleUrlInput);
+    clearUrlBtn.addEventListener('click', () => {
+        urlInput.value = '';
+        webUrl = '';
+        checkStartButtonState();
+    });
+
     // 开始翻译按钮
     startTranslationBtn.addEventListener('click', startTranslation);
     // API密钥相关
     apiKeyInput.addEventListener('input', () => {
         apiKey = apiKeyInput.value.trim();
         localStorage.setItem('deepseekApiKey', apiKey);
+        checkStartButtonState();
     });
     // 提示输入框
     promptInput.addEventListener('input', () => {
@@ -91,6 +106,23 @@ function setupEventListeners() {
     downloadMarkdownBtn.addEventListener('click', downloadTranslatedMarkdown);
 }
 
+// 处理网址输入
+function handleUrlInput(event) {
+    webUrl = event.target.value.trim();
+    checkStartButtonState();
+}
+
+// 检查开始按钮状态
+function checkStartButtonState() {
+    // 如果有API密钥，并且有文件或网址，则启用开始按钮
+    if (apiKey && (pdfFile || webUrl)) {
+        startTranslationBtn.disabled = false;
+        progressContainer.classList.remove('hidden');
+    } else {
+        startTranslationBtn.disabled = true;
+    }
+}
+
 // 处理文件选择
 function handleFileSelect(event) {
     // 重置计时器
@@ -102,7 +134,6 @@ function handleFileSelect(event) {
         pdfFile = file;
         updateStatus('文件已选择: ' + file.name, 10);
         progressContainer.classList.remove('hidden');
-        startTranslationBtn.classList.remove('hidden');
 
         if (file.type === 'application/pdf') {
             extractPdfText(file);
@@ -113,7 +144,7 @@ function handleFileSelect(event) {
         alert('请选择有效的PDF或Markdown文件');
     }
 
-    startTranslationBtn.disabled = false;
+    checkStartButtonState();
 }
 
 // 处理拖拽悬停
@@ -146,7 +177,6 @@ function handleFileDrop(event) {
         fileInput.files = event.dataTransfer.files;
         updateStatus('文件已上传: ' + file.name, 10);
         progressContainer.classList.remove('hidden');
-        startTranslationBtn.classList.remove('hidden');
 
         if (file.type === 'application/pdf') {
             extractPdfText(file);
@@ -156,7 +186,7 @@ function handleFileDrop(event) {
     } else {
         alert('请拖放有效的PDF或Markdown文件');
     }
-    startTranslationBtn.disabled = false;
+    checkStartButtonState();
 }
 
 // 全局变量用于存储PDF文件信息
@@ -195,6 +225,42 @@ async function extractPdfText(file) {
     } catch (error) {
         console.error('PDF解析错误:', error);
         updateStatus('PDF解析失败: ' + error.message, 0);
+    }
+}
+
+// 从网址获取Markdown文本
+async function fetchWebContent(url) {
+    updateStatus('正在从网页获取内容...', 20);
+
+    try {
+        // Construct the API request URL
+        const apiRequestUrl = `${corsProxyUrl}${encodeURIComponent(webInkApiUrl)}?url=${encodeURIComponent(url)}`;
+        console.log('apiRequestUrl', apiRequestUrl)
+
+        const response = await fetch(apiRequestUrl);
+
+        if (!response.ok) {
+            throw new Error(`获取网页内容失败: ${response.status} ${response.statusText}`);
+        }
+
+        const markdown = await response.text();
+
+        // 保存文件信息
+        fileInfo = {
+            fileName: `webpage_${new URL(url).hostname}`,
+            fileType: 'webpage',
+            sourceUrl: url
+        };
+
+        extractedText = markdown;
+        updateStatus('网页内容获取完成，准备翻译', 50);
+        console.log('获取的网页内容:', extractedText);
+
+        return markdown;
+    } catch (error) {
+        console.error('获取网页内容错误:', error);
+        updateStatus('获取网页内容失败: ' + error.message, 0);
+        throw error;
     }
 }
 
@@ -244,17 +310,12 @@ function splitTextIntoBlocks(text, blockSize) {
 
 // 开始翻译过程
 async function startTranslation() {
-
     // 禁用文件上传相关的UI元素
     browseButton.disabled = true;
     uploadArea.style.pointerEvents = 'none';
-
     fileInput.disabled = true;
-
-    if (!extractedText) {
-        alert('遇到问题了：没有提取的文本。请联系lisongfeng。');
-        return;
-    }
+    urlInput.disabled = true;
+    clearUrlBtn.disabled = true;
 
     if (!apiKey) {
         alert('请输入密钥');
@@ -262,57 +323,93 @@ async function startTranslation() {
         return;
     }
 
-    startTimer(); // 开始计时
-    // 禁用下载按钮、禁用开始翻译按钮
-    downloadMarkdownBtn.disabled = true;
-    startTranslationBtn.disabled = true;
+    try {
+        // 如果有网址输入，优先处理网址
+        if (webUrl) {
+            // 清除之前的文件选择
+            pdfFile = null;
+            extractedText = '';
 
-    textBlocks = splitTextIntoBlocks(extractedText, blockSize);
-
-    // 初始化翻译块为"待翻译"状态
-    translatedBlocks = textBlocks.map((text, index) => ({
-        status: BLOCK_STATUS.PENDING,
-        content: null,
-        index: index,
-        originalText: text,
-        error: null
-    }));
-
-    // 更新文件信息对象，添加分块阈值和分块数
-    fileInfo.blockSize = blockSize;
-    fileInfo.blockCount = textBlocks.length;
-
-    updateStatus(`开始翻译 ${textBlocks.length} 个文本块...`, 75);
-
-    // 准备翻译结果区域
-    translationResult.classList.remove('hidden');
-
-    // 显示所有待翻译块
-    updateAllTranslationBlocks();
-
-    // 并发翻译，但限制并发数量
-    const pendingBlocks = [...Array(textBlocks.length).keys()];
-    const activePromises = new Set();
-
-    while (pendingBlocks.length > 0 || activePromises.size > 0) {
-        // 填充活跃请求直到达到并发限制
-        while (pendingBlocks.length > 0 && activePromises.size < concurrencyLimit) {
-            const blockIndex = pendingBlocks.shift();
-            const promise = translateBlock(textBlocks[blockIndex], blockIndex)
-                .then(() => {
-                    activePromises.delete(promise);
-                });
-            activePromises.add(promise);
+            // 从网址获取内容
+            await fetchWebContent(webUrl);
         }
 
-        // 等待任意一个请求完成
-        if (activePromises.size > 0) {
-            await Promise.race(Array.from(activePromises));
+        if (!extractedText) {
+            alert('没有可翻译的内容。请上传文件或输入有效网址。');
+
+            // 恢复UI元素状态
+            browseButton.disabled = false;
+            uploadArea.style.pointerEvents = 'auto';
+            fileInput.disabled = false;
+            urlInput.disabled = false;
+            clearUrlBtn.disabled = false;
+
+            return;
         }
+
+        startTimer(); // 开始计时
+        // 禁用下载按钮、禁用开始翻译按钮
+        downloadMarkdownBtn.disabled = true;
+        startTranslationBtn.disabled = true;
+
+        textBlocks = splitTextIntoBlocks(extractedText, blockSize);
+
+        // 初始化翻译块为"待翻译"状态
+        translatedBlocks = textBlocks.map((text, index) => ({
+            status: BLOCK_STATUS.PENDING,
+            content: null,
+            index: index,
+            originalText: text,
+            error: null
+        }));
+
+        // 更新文件信息对象，添加分块阈值和分块数
+        fileInfo.blockSize = blockSize;
+        fileInfo.blockCount = textBlocks.length;
+
+        updateStatus(`开始翻译 ${textBlocks.length} 个文本块...`, 75);
+
+        // 准备翻译结果区域
+        translationResult.classList.remove('hidden');
+
+        // 显示所有待翻译块
+        updateAllTranslationBlocks();
+
+        // 并发翻译，但限制并发数量
+        const pendingBlocks = [...Array(textBlocks.length).keys()];
+        const activePromises = new Set();
+
+        while (pendingBlocks.length > 0 || activePromises.size > 0) {
+            // 填充活跃请求直到达到并发限制
+            while (pendingBlocks.length > 0 && activePromises.size < concurrencyLimit) {
+                const blockIndex = pendingBlocks.shift();
+                const promise = translateBlock(textBlocks[blockIndex], blockIndex)
+                    .then(() => {
+                        activePromises.delete(promise);
+                    });
+                activePromises.add(promise);
+            }
+
+            // 等待任意一个请求完成
+            if (activePromises.size > 0) {
+                await Promise.race(Array.from(activePromises));
+            }
+        }
+
+        // 所有块都翻译完成后，显示最终结果
+        displayTranslationResult();
+    } catch (error) {
+        console.error('翻译过程出错:', error);
+        updateStatus('翻译过程出错: ' + error.message, 0);
+
+        // 恢复UI元素状态
+        browseButton.disabled = false;
+        uploadArea.style.pointerEvents = 'auto';
+        fileInput.disabled = false;
+        urlInput.disabled = false;
+        clearUrlBtn.disabled = false;
+        startTranslationBtn.disabled = false;
     }
-
-    // 所有块都翻译完成后，显示最终结果
-    displayTranslationResult();
 }
 
 // 翻译单个文本块
@@ -491,6 +588,10 @@ function displayTranslationResult() {
         uploadArea.style.pointerEvents = 'auto';
         startTranslationBtn.disabled = false;
         fileInput.disabled = false;
+
+        // 恢复网址输入相关的UI元素
+        urlInput.disabled = false;
+        clearUrlBtn.disabled = false;
     }
 }
 
