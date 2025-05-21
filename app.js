@@ -7,6 +7,7 @@ let apiKey = '';
 let prompt = '';
 const concurrencyLimit = 9;
 const blockSize = 500;
+const apiUrl = 'https://worker.pdftranslate.fun';
 
 // 翻译块状态常量
 const BLOCK_STATUS = {
@@ -345,8 +346,6 @@ ${text}`;
 
 // 调用Cloudflare Worker API进行翻译
 async function callDeepSeekAPI(text) {
-    const apiUrl = 'https://worker.pdftranslate.fun';
-
     const requestData = {
         key: apiKey,
         text: text,
@@ -609,3 +608,20 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// 在文档加载完成后的初始化函数中添加
+document.getElementById('advancedSettingsToggle').addEventListener('click', function (e) {
+    e.preventDefault();
+    const panel = document.getElementById('advancedSettingsPanel');
+    panel.classList.toggle('hidden');
+
+    // 更新图标和文本
+    const icon = this.querySelector('i');
+    if (panel.classList.contains('hidden')) {
+        icon.className = 'bi bi-gear-fill me-1';
+        this.innerHTML = '<i class="bi bi-gear-fill me-1"></i>进阶设置';
+    } else {
+        icon.className = 'bi bi-gear-fill me-1';
+        this.innerHTML = '<i class="bi bi-gear-fill me-1"></i>收起进阶设置';
+    }
+});
