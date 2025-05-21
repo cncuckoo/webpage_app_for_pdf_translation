@@ -109,18 +109,15 @@ function setupEventListeners() {
 // 处理网址输入
 function handleUrlInput(event) {
     webUrl = event.target.value.trim();
-    checkStartButtonState();
-}
 
-// 检查开始按钮状态
-function checkStartButtonState() {
-    // 如果有API密钥，并且有文件或网址，则启用开始按钮
-    if (apiKey && (pdfFile || webUrl)) {
-        startTranslationBtn.disabled = false;
-        progressContainer.classList.remove('hidden');
-    } else {
-        startTranslationBtn.disabled = true;
+    // 如果输入了网址，清空文件选择
+    if (webUrl) {
+        pdfFile = null;
+        fileInput.value = ''; // 清空文件输入框
+        extractedText = ''; // 清空已提取的文本
     }
+
+    checkStartButtonState();
 }
 
 // 处理文件选择
@@ -134,6 +131,10 @@ function handleFileSelect(event) {
         pdfFile = file;
         updateStatus('文件已选择: ' + file.name, 10);
         progressContainer.classList.remove('hidden');
+
+        // 清空网址输入框
+        urlInput.value = '';
+        webUrl = '';
 
         if (file.type === 'application/pdf') {
             extractPdfText(file);
@@ -178,6 +179,10 @@ function handleFileDrop(event) {
         updateStatus('文件已上传: ' + file.name, 10);
         progressContainer.classList.remove('hidden');
 
+        // 清空网址输入框
+        urlInput.value = '';
+        webUrl = '';
+
         if (file.type === 'application/pdf') {
             extractPdfText(file);
         } else if (file.name.endsWith('.md')) {
@@ -189,8 +194,16 @@ function handleFileDrop(event) {
     checkStartButtonState();
 }
 
-// 全局变量用于存储PDF文件信息
-let fileInfo = null;
+// 检查开始按钮状态
+function checkStartButtonState() {
+    // 如果有API密钥，并且有文件或网址，则启用开始按钮
+    if (apiKey && (pdfFile || webUrl)) {
+        startTranslationBtn.disabled = false;
+        progressContainer.classList.remove('hidden');
+    } else {
+        startTranslationBtn.disabled = true;
+    }
+}
 
 // 从PDF提取文本
 async function extractPdfText(file) {
