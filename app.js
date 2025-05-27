@@ -13,6 +13,16 @@ const apiUrl = 'https://worker.pdftranslate.fun';
 const webInkApiUrl = 'https://webink.app/api/markdown';
 // Use a CORS proxy service
 const corsProxyUrl = 'https://api.allorigins.win/raw?url=';
+
+// url = 'https://www.anthropic.com/news/agent-capabilities-api'
+// targetUrl = `${encodeURIComponent(webInkApiUrl)}?url=${encodeURIComponent(url)}`
+// const corsProxyUrl = 'https://whateverorigin.org/';
+// fetch(`https://whateverorigin.org/get?url=${targetUrl}`).then(response => {
+//     if (response.ok) return response.json()
+//     throw new Error('Network response was not ok.')
+//   })
+//   .then(data => console.log(data));
+
 // 翻译块状态常量
 const BLOCK_STATUS = {
     PENDING: 'pending',   // 待翻译
@@ -616,8 +626,40 @@ function downloadTranslatedMarkdown() {
         .map(block => block.content)
         .join('\n\n');
 
+    // 获取当前时间
+    const now = new Date();
+    const dateTimeStr = now.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
+
+    // 创建文件头部信息
+    let headerInfo = `# 文件信息\n\n`;
+    headerInfo += `- 原始文件：${fileInfo.fileName}\n`;
+
+    // 如果是网页，添加源URL
+    if (fileInfo.fileType === 'webpage' && fileInfo.sourceUrl) {
+        headerInfo += `- 源网址：${fileInfo.sourceUrl}\n`;
+    }
+
+    // 如果是PDF，添加页数信息
+    if (fileInfo.pageCount) {
+        headerInfo += `- 页数：${fileInfo.pageCount}\n`;
+    }
+
+    headerInfo += `- 翻译时间：${dateTimeStr}\n\n`;
+    headerInfo += `---\n\n`; // 添加分隔线
+
+    // 将头部信息添加到翻译文本前
+    const contentWithHeader = headerInfo + translatedText;
+
     // 创建Blob对象
-    const blob = new Blob([translatedText], { type: 'text/markdown;charset=utf-8' });
+    const blob = new Blob([contentWithHeader], { type: 'text/markdown;charset=utf-8' });
 
     // 创建下载链接
     const downloadLink = document.createElement('a');
