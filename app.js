@@ -6,6 +6,13 @@ let translatedBlocks = [];
 let apiKey = '';
 let prompt = '';
 let webUrl = '';
+// 匹配中文、日文和韩文字符的正则表达式
+// \u4E00-\u9FFF：中文字符
+// \u3040-\u309F：日文平假名
+// \u30A0-\u30FF：日文片假名
+// \uAC00-\uD7A3：韩文音节
+// \u1100-\u11FF：韩文字母
+const cjkRegex = /[\u4E00-\u9FFF\u3040-\u309F\u30A0-\u30FF\uAC00-\uD7A3\u1100-\u11FF]/g;
 const concurrencyLimit = 9;
 const blockSize = 500;
 const apiUrl = 'https://worker.pdftranslate.fun';
@@ -295,6 +302,19 @@ function convertToMarkdown(text) {
     return paragraphs.map(p => p.trim()).filter(p => p).join('\n\n');
 }
 
+// 检查文本中中文、日文或韩文字符的比例是否超过阈值
+function hasCJKCharactersOverThreshold(text, threshold = 0.5) {
+    const cjkMatches = text.match(cjkRegex) || [];
+    // 计算中日韩文字符的比例
+    return cjkMatches.length / text.length > threshold;
+}
+
+// 计算中文、日文或韩文字符的数量
+function countCJKCharacters(text) {
+    const cjkMatches = text.match(cjkRegex) || [];
+    return cjkMatches.length;
+}
+
 // 将文本分块，确保每块包含完整段落
 function splitTextIntoBlocks(text, blockSize) {
     updateStatus('正在进行文本分块...', 60);
@@ -305,7 +325,15 @@ function splitTextIntoBlocks(text, blockSize) {
     let currentWordCount = 0;
 
     for (const paragraph of paragraphs) {
-        const paragraphWordCount = paragraph.split(/\s+/).length;
+        // 判断段落中中文、日文或韩文字符的比例是否超过50%
+        let paragraphWordCount;
+        if (hasCJKCharactersOverThreshold(paragraph)) {
+            // 如果中日韩文字符比例超过50%，则计算字符数
+            paragraphWordCount = countCJKCharacters(paragraph);
+        } else {
+            // 否则按照空格分隔计算单词数
+            paragraphWordCount = paragraph.split(/\s+/).length;
+        }
 
         // 如果当前段落加上已有内容超过了块大小，并且当前块不为空，则创建新块
         if (currentWordCount + paragraphWordCount > blockSize && currentBlock !== '') {
