@@ -6,6 +6,19 @@ let translatedBlocks = [];
 let apiKey = '';
 let prompt = '';
 let webUrl = '';
+let sourceLanguage = 'en'; // 默认源语言为英语
+
+// 源语言选项数据
+const sourceLanguages = {
+    "en": "英语",
+    "ja": "日语",
+    "ko": "韩语",
+    "fr": "法语",
+    "de": "德语",
+    "ru": "俄语",
+    "es": "西班牙语"
+};
+
 // 匹配中文、日文和韩文字符的正则表达式
 // \u4E00-\u9FFF：中文字符
 // \u3040-\u309F：日文平假名
@@ -15,7 +28,9 @@ let webUrl = '';
 const cjkRegex = /[\u4E00-\u9FFF\u3040-\u309F\u30A0-\u30FF\uAC00-\uD7A3\u1100-\u11FF]/g;
 const concurrencyLimit = 9;
 const blockSize = 500;
-const apiUrl = 'https://worker.pdftranslate.fun';
+const mode = 'production'
+const apiUrl = mode === 'dev' ? 'http://localhost:8787' : 'https://worker.pdftranslate.fun';
+
 // WebInk API URL
 const webInkApiUrl = 'https://webink.app/api/markdown';
 // Use a CORS proxy service
@@ -85,6 +100,9 @@ function setupEventListeners() {
     uploadArea.addEventListener('dragover', handleDragOver);
     uploadArea.addEventListener('dragleave', handleDragLeave);
     uploadArea.addEventListener('drop', handleFileDrop);
+
+    // 初始化源语言选项
+    initSourceLanguageOptions();
 
     // 网址输入相关事件
     urlInput.addEventListener('input', handleUrlInput);
@@ -498,7 +516,8 @@ async function callDeepSeekAPI(text) {
         key: apiKey,
         text: text,
         file_info: fileInfo,
-        prompt: prompt  // 添加prompt字段
+        prompt: prompt,  // 添加prompt字段
+        source_language: sourceLanguage  // 添加源语言字段
     };
 
     try {
@@ -809,3 +828,40 @@ document.getElementById('advancedSettingsToggle').addEventListener('click', func
         this.innerHTML = '<i class="bi bi-gear-fill me-1"></i>收起进阶设置';
     }
 });
+
+// 初始化源语言选项
+function initSourceLanguageOptions() {
+    const container = document.getElementById('sourceLanguageOptions');
+    container.innerHTML = '';
+
+    Object.entries(sourceLanguages).forEach(([code, name], index) => {
+        const radioId = `lang-${code}`;
+
+        const radioDiv = document.createElement('div');
+        radioDiv.className = 'form-check form-check-inline';
+
+        const radioInput = document.createElement('input');
+        radioInput.className = 'form-check-input';
+        radioInput.type = 'radio';
+        radioInput.name = 'sourceLanguage';
+        radioInput.id = radioId;
+        radioInput.value = code;
+        radioInput.checked = code === 'en'; // 默认选中英语
+
+        radioInput.addEventListener('change', () => {
+            if (radioInput.checked) {
+                sourceLanguage = code;
+                checkStartButtonState();
+            }
+        });
+
+        const radioLabel = document.createElement('label');
+        radioLabel.className = 'form-check-label';
+        radioLabel.htmlFor = radioId;
+        radioLabel.textContent = name;
+
+        radioDiv.appendChild(radioInput);
+        radioDiv.appendChild(radioLabel);
+        container.appendChild(radioDiv);
+    });
+}

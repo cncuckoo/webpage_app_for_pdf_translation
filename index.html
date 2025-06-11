@@ -218,8 +218,17 @@
                             <i class="bi bi-x"></i>
                         </button>
                     </div>
-                    <div class="form-text">* 输入网址后将从网页获取内容进行翻译（注意：不支持“付费墙”内容）</div>
+                    <div class="form-text">* 输入网址后将从网页获取内容进行翻译（注意：不支持"付费墙"内容）</div>
                 </div>
+
+                <!-- 源语言选择 -->
+                <div class="my-3">
+                    <label class="form-label">源语言（必填）</label>
+                    <div id="sourceLanguageOptions" class="d-flex flex-wrap gap-2">
+                        <!-- 这里的选项将由JavaScript动态生成 -->
+                    </div>
+                </div>
+
                 <div class="my-3">
                     <label for="apiKeyInput" class="form-label">密钥（必填）</label>
                     <div class="input-group">
@@ -280,7 +289,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.0/marked.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css"
         rel="stylesheet">
-    <script src="app.js?v=202506081036"></script>
+    <script src="app.js?v=202506111036"></script>
 </body>
 
 </html>
