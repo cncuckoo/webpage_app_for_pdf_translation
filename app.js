@@ -285,7 +285,9 @@ async function fetchWebContent(url) {
         const apiRequestUrl = `${corsProxyUrl}${encodeURIComponent(webInkApiUrl)}?url=${encodeURIComponent(url)}`;
         console.log('apiRequestUrl', apiRequestUrl)
 
-        const response = await fetch(apiRequestUrl);
+        const response = await fetch(apiRequestUrl, {
+            cache: 'no-store'
+        });
 
         if (!response.ok) {
             throw new Error(`获取网页内容失败: ${response.status} ${response.statusText}`);
