@@ -163,7 +163,7 @@ function handleUrlInput(event) {
 function handleFileSelect(event) {
     // 重置计时器
     stopTimer();
-    document.getElementById('timerDisplay').textContent = '00:00';
+    resetTimerDisplay();
 
     const file = event.target.files[0];
     if (file && (file.type === 'application/pdf' || file.name.endsWith('.md'))) {
@@ -205,7 +205,7 @@ function handleDragLeave(event) {
 function handleFileDrop(event) {
     // 重置计时器
     stopTimer();
-    document.getElementById('timerDisplay').textContent = '00:00';
+    resetTimerDisplay();
 
     event.preventDefault();
     event.stopPropagation();
@@ -394,6 +394,8 @@ async function startTranslation() {
     fileInput.disabled = true;
     urlInput.disabled = true;
     clearUrlBtn.disabled = true;
+
+    resetTimerDisplay(); // 重置计时器显示
 
     if (!apiKey) {
         alert('请输入密钥');
@@ -786,6 +788,10 @@ function readFileAsText(file) {
 // 计时器相关变量
 let timerInterval;
 let startTime;
+
+function resetTimerDisplay() {
+    document.getElementById('timerDisplay').textContent = '00:00';
+}
 
 function updateTimer() {
     const currentTime = Date.now();
