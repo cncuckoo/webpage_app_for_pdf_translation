@@ -7,9 +7,11 @@ let apiKey = '';
 let prompt = '';
 let webUrl = '';
 let sourceLanguage = 'en'; // 默认源语言为英语
+let targetLanguage = 'zh'; // 默认目标语言为中文
 
-// 源语言选项数据
-const sourceLanguages = {
+// 语言选项数据
+const languages = {
+    "zh": "中文",
     "en": "英语",
     "ja": "日语",
     "ko": "韩语",
@@ -29,6 +31,7 @@ const cjkRegex = /[\u4E00-\u9FFF\u3040-\u309F\u30A0-\u30FF\uAC00-\uD7A3\u1100-\u
 const concurrencyLimit = 9;
 const blockSize = 500;
 const mode = 'production'
+// const mode = 'dev'
 const apiUrl = mode === 'dev' ? 'http://localhost:8787' : 'https://worker.pdftranslate.fun';
 
 // WebInk API URL
@@ -101,8 +104,9 @@ function setupEventListeners() {
     uploadArea.addEventListener('dragleave', handleDragLeave);
     uploadArea.addEventListener('drop', handleFileDrop);
 
-    // 初始化源语言选项
+    // 初始化语言选项
     initSourceLanguageOptions();
+    initTargetLanguageOptions();
 
     // 网址输入相关事件
     urlInput.addEventListener('input', handleUrlInput);
@@ -231,8 +235,8 @@ function handleFileDrop(event) {
 
 // 检查开始按钮状态
 function checkStartButtonState() {
-    // 如果有API密钥，并且有文件或网址，则启用开始按钮
-    if (apiKey && (pdfFile || webUrl)) {
+    // 如果有API密钥，有源语言和目标语言，并且有文件或网址，则启用开始按钮
+    if (apiKey && sourceLanguage && targetLanguage && (pdfFile || webUrl)) {
         startTranslationBtn.disabled = false;
         progressContainer.classList.remove('hidden');
     } else {
@@ -519,7 +523,8 @@ async function callDeepSeekAPI(text) {
         text: text,
         file_info: fileInfo,
         prompt: prompt,  // 添加prompt字段
-        source_language: sourceLanguage  // 添加源语言字段
+        source_language: sourceLanguage,  // 添加源语言字段
+        target_language: targetLanguage  // 添加目标语言字段
     };
 
     try {
@@ -833,37 +838,47 @@ document.getElementById('advancedSettingsToggle').addEventListener('click', func
 
 // 初始化源语言选项
 function initSourceLanguageOptions() {
-    const container = document.getElementById('sourceLanguageOptions');
-    container.innerHTML = '';
+    const selectElement = document.getElementById('sourceLanguageSelect');
+    selectElement.innerHTML = '';
 
-    Object.entries(sourceLanguages).forEach(([code, name], index) => {
-        const radioId = `lang-${code}`;
+    Object.entries(languages).forEach(([code, name]) => {
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = name;
+        option.selected = code === 'en'; // 默认选中英语
 
-        const radioDiv = document.createElement('div');
-        radioDiv.className = 'form-check form-check-inline';
-
-        const radioInput = document.createElement('input');
-        radioInput.className = 'form-check-input';
-        radioInput.type = 'radio';
-        radioInput.name = 'sourceLanguage';
-        radioInput.id = radioId;
-        radioInput.value = code;
-        radioInput.checked = code === 'en'; // 默认选中英语
-
-        radioInput.addEventListener('change', () => {
-            if (radioInput.checked) {
-                sourceLanguage = code;
-                checkStartButtonState();
-            }
-        });
-
-        const radioLabel = document.createElement('label');
-        radioLabel.className = 'form-check-label';
-        radioLabel.htmlFor = radioId;
-        radioLabel.textContent = name;
-
-        radioDiv.appendChild(radioInput);
-        radioDiv.appendChild(radioLabel);
-        container.appendChild(radioDiv);
+        selectElement.appendChild(option);
     });
+
+    // 添加change事件监听器
+    selectElement.addEventListener('change', () => {
+        sourceLanguage = selectElement.value;
+        checkStartButtonState();
+    });
+
+    // 确保初始值设置正确
+    sourceLanguage = selectElement.value;
+}
+
+function initTargetLanguageOptions() {
+    const selectElement = document.getElementById('targetLanguageSelect');
+    selectElement.innerHTML = '';
+
+    Object.entries(languages).forEach(([code, name]) => {
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = name;
+        option.selected = code === 'zh'; // 默认选中中文
+
+        selectElement.appendChild(option);
+    });
+
+    // 添加change事件监听器
+    selectElement.addEventListener('change', () => {
+        targetLanguage = selectElement.value;
+        checkStartButtonState();
+    });
+
+    // 确保初始值设置正确
+    targetLanguage = selectElement.value;
 }
