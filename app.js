@@ -301,7 +301,10 @@ async function fetchWebContent(url) {
 
         // 保存文件信息
         fileInfo = {
-            fileName: `webpage_${new URL(url).hostname}`,
+            fileName: `webpage_${(() => {
+                const urlObj = new URL(url)
+                return `${urlObj.hostname}${urlObj.pathname.replace(/[\.\-\/]/g, '_').replace(/\_{2,}/g, '_').replace(/_+$/g, '')}`
+            })()}`,
             fileType: 'webpage',
             sourceUrl: url
         };
