@@ -721,7 +721,7 @@ function downloadTranslatedMarkdown() {
     // 创建下载链接
     const downloadLink = document.createElement('a');
     downloadLink.href = URL.createObjectURL(blob);
-    downloadLink.download = `translated_${fileInfo.fileName.replace(/\.[^/.]+$/, '')}.md`;
+    downloadLink.download = `translated_${fileInfo.fileName}.md`;
 
     // 触发下载
     document.body.appendChild(downloadLink);
