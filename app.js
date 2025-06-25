@@ -301,10 +301,7 @@ async function fetchWebContent(url) {
 
         // 保存文件信息
         fileInfo = {
-            fileName: `webpage_${(() => {
-                const urlObj = new URL(url)
-                return `${urlObj.hostname}${urlObj.pathname.replace(/[\.\-\/]/g, '_').replace(/\_{2,}/g, '_').replace(/_+$/g, '')}`
-            })()}`,
+            fileName: `webpage_${generateSafeFilenameFromUrl(url)}`,
             fileType: 'webpage',
             sourceUrl: url
         };
@@ -785,34 +782,86 @@ function readFileAsText(file) {
     });
 }
 
-// 计时器相关变量
-let timerInterval;
-let startTime;
-
-function resetTimerDisplay() {
-    document.getElementById('timerDisplay').textContent = '00:00';
+/**
+ * 从URL生成安全的文件名
+ * @param {string} url - 需要处理的URL
+ * @returns {string} - 处理后的安全文件名
+ */
+function generateSafeFilenameFromUrl(url) {
+    const urlObj = new URL(url);
+    // 组合主机名和路径，替换特殊字符为下划线
+    // 1. 替换点、横线和斜杠为下划线
+    // 2. 替换连续的多个下划线为单个下划线
+    // 3. 移除末尾的下划线
+    return `${urlObj.hostname}${urlObj.pathname.replace(/[\.\-\/]/g, '_').replace(/\_{2,}/g, '_').replace(/_+$/g, '')}`;
 }
 
-function updateTimer() {
-    const currentTime = Date.now();
-    const elapsedTime = Math.floor((currentTime - startTime) / 1000);
-    const minutes = Math.floor(elapsedTime / 60);
-    const seconds = elapsedTime % 60;
-    document.getElementById('timerDisplay').textContent =
-        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+// 计时器相关常量
+const TIMER_DISPLAY_ID = 'timerDisplay';
+const TIMER_ICON_ID = 'timerIcon';
+const TIMER_ANIMATION_CLASS = 'rotate-animation';
+
+/**
+ * 计时器对象 - 封装所有计时器相关功能
+ * 负责管理翻译过程中的计时显示和动画
+ */
+const Timer = {
+    interval: null,  // 计时器间隔引用
+    startTime: null, // 开始时间戳
+    
+    /**
+     * 重置计时器显示为初始状态 (00:00)
+     */
+    reset() {
+        document.getElementById(TIMER_DISPLAY_ID).textContent = '00:00';
+    },
+    
+    /**
+     * 更新计时器显示
+     * 计算经过的时间并格式化为 MM:SS 格式
+     */
+    update() {
+        const currentTime = Date.now();
+        const elapsedTime = Math.floor((currentTime - this.startTime) / 1000);
+        const minutes = Math.floor(elapsedTime / 60);
+        const seconds = elapsedTime % 60;
+        document.getElementById(TIMER_DISPLAY_ID).textContent =
+            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    },
+    
+    /**
+     * 启动计时器
+     * 设置开始时间，创建更新间隔，添加动画效果
+     */
+    start() {
+        this.startTime = Date.now();
+        this.interval = setInterval(() => this.update(), 1000);
+        document.getElementById(TIMER_ICON_ID).classList.add(TIMER_ANIMATION_CLASS);
+    },
+    
+    /**
+     * 停止计时器
+     * 清除更新间隔，移除动画效果
+     */
+    stop() {
+        if (this.interval) {
+            clearInterval(this.interval);
+            document.getElementById(TIMER_ICON_ID).classList.remove(TIMER_ANIMATION_CLASS);
+        }
+    }
+};
+
+// 为了保持与现有代码的兼容性，提供以下函数作为Timer对象的包装器
+function resetTimerDisplay() {
+    Timer.reset();
 }
 
 function startTimer() {
-    startTime = Date.now();
-    timerInterval = setInterval(updateTimer, 1000);
-    document.getElementById('timerIcon').classList.add('rotate-animation');
+    Timer.start();
 }
 
 function stopTimer() {
-    if (timerInterval) {
-        clearInterval(timerInterval);
-        document.getElementById('timerIcon').classList.remove('rotate-animation');
-    }
+    Timer.stop();
 }
 
 // 添加时钟图标旋转动画样式
