@@ -559,18 +559,24 @@ function generateBlockHTML(block) {
     switch (status) {
         case BLOCK_STATUS.PENDING:
             return `<div class="translation-block pending" id="block-${index}">
-                <div class="block-content text-center p-3 my-3" style="background-color: #f0f0f0; border-radius: 5px;">
-                    <p class="mb-0">分块 ${index + 1}：待翻译</p>
+                <div class="block-content p-3 my-3" style="background-color: #f8f9fa; border-radius: 5px; position: relative;">
+                    <div class="block-text">${marked.parse(block.originalText)}</div>
+                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(240, 240, 240, 0.8); display: flex; justify-content: center; align-items: center; border-radius: 5px;">
+                        <p class="mb-0">分块 ${index + 1}：待翻译</p>
+                    </div>
                 </div>
             </div>`;
 
         case BLOCK_STATUS.TRANSLATING:
             return `<div class="translation-block translating" id="block-${index}">
-                <div class="block-content text-center p-3 my-3" style="background-color: #e8f4ff; border-radius: 5px;">
-                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
-                        <span class="visually-hidden">Loading...</span>
+                <div class="block-content p-3 my-3" style="background-color: #f8f9fa; border-radius: 5px; position: relative;">
+                    <div class="block-text">${marked.parse(block.originalText)}</div>
+                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(232, 244, 255, 0.8); display: flex; justify-content: center; align-items: center; border-radius: 5px;">
+                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span>正在翻译分块 ${index + 1}...</span>
                     </div>
-                    <span>正在翻译分块 ${index + 1}...</span>
                 </div>
             </div>`;
 
@@ -808,14 +814,14 @@ const TIMER_ANIMATION_CLASS = 'rotate-animation';
 const Timer = {
     interval: null,  // 计时器间隔引用
     startTime: null, // 开始时间戳
-    
+
     /**
      * 重置计时器显示为初始状态 (00:00)
      */
     reset() {
         document.getElementById(TIMER_DISPLAY_ID).textContent = '00:00';
     },
-    
+
     /**
      * 更新计时器显示
      * 计算经过的时间并格式化为 MM:SS 格式
@@ -828,7 +834,7 @@ const Timer = {
         document.getElementById(TIMER_DISPLAY_ID).textContent =
             `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     },
-    
+
     /**
      * 启动计时器
      * 设置开始时间，创建更新间隔，添加动画效果
@@ -838,7 +844,7 @@ const Timer = {
         this.interval = setInterval(() => this.update(), 1000);
         document.getElementById(TIMER_ICON_ID).classList.add(TIMER_ANIMATION_CLASS);
     },
-    
+
     /**
      * 停止计时器
      * 清除更新间隔，移除动画效果
