@@ -84,12 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
         apiKeyInput.value = savedApiKey;
         apiKey = savedApiKey;
     }
-    // 从localStorage加载提示（如果有）
-    const savedPrompt = localStorage.getItem('translationPrompt');
-    if (savedPrompt) {
-        promptInput.value = savedPrompt;
-        prompt = savedPrompt;
-    }
 
     // 设置事件监听器
     setupEventListeners();
@@ -127,7 +121,6 @@ function setupEventListeners() {
     // 提示输入框
     promptInput.addEventListener('input', () => {
         prompt = promptInput.value.trim();
-        localStorage.setItem('translationPrompt', prompt);
     });
 
     // 切换API密钥可见性
@@ -274,6 +267,9 @@ async function extractPdfText(file) {
         updateStatus('文本提取完成，准备翻译', 50);
         console.log('提取的文本:', extractedText.substring(0, 500) + '...');
 
+        // 文本读取完成后立即显示原文
+        displayOriginalText();
+
     } catch (error) {
         console.error('PDF解析错误:', error);
         updateStatus('PDF解析失败: ' + error.message, 0);
@@ -309,6 +305,9 @@ async function fetchWebContent(url) {
         extractedText = markdown;
         updateStatus('网页内容获取完成，准备翻译', 50);
         console.log('获取的网页内容:', extractedText);
+
+        // 网页内容获取完成后立即显示原文
+        displayOriginalText();
 
         return markdown;
     } catch (error) {
@@ -429,28 +428,11 @@ async function startTranslation() {
         downloadMarkdownBtn.disabled = true;
         startTranslationBtn.disabled = true;
 
-        textBlocks = splitTextIntoBlocks(extractedText, blockSize);
-
-        // 初始化翻译块为"待翻译"状态
-        translatedBlocks = textBlocks.map((text, index) => ({
-            status: BLOCK_STATUS.PENDING,
-            content: null,
-            index: index,
-            originalText: text,
-            error: null
-        }));
-
         // 更新文件信息对象，添加分块阈值和分块数
         fileInfo.blockSize = blockSize;
         fileInfo.blockCount = textBlocks.length;
 
         updateStatus(`开始翻译 ${textBlocks.length} 个文本块...`, 75);
-
-        // 准备翻译结果区域
-        translationResult.classList.remove('hidden');
-
-        // 显示所有待翻译块
-        updateAllTranslationBlocks();
 
         // 并发翻译，但限制并发数量
         const pendingBlocks = [...Array(textBlocks.length).keys()];
@@ -559,7 +541,7 @@ function generateBlockHTML(block) {
     switch (status) {
         case BLOCK_STATUS.PENDING:
             return `<div class="translation-block pending" id="block-${index}">
-                <div class="block-content p-3 my-3" style="background-color: #f8f9fa; border-radius: 5px; position: relative;">
+                <div class="block-content px-3" style="background-color: #f8f9fa; border-radius: 5px; position: relative;">
                     <div class="block-text">${marked.parse(block.originalText)}</div>
                     <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(240, 240, 240, 0.8); display: flex; justify-content: center; align-items: center; border-radius: 5px;">
                         <p class="mb-0">分块 ${index + 1}：待翻译</p>
@@ -569,7 +551,7 @@ function generateBlockHTML(block) {
 
         case BLOCK_STATUS.TRANSLATING:
             return `<div class="translation-block translating" id="block-${index}">
-                <div class="block-content p-3 my-3" style="background-color: #f8f9fa; border-radius: 5px; position: relative;">
+                <div class="block-content px-3" style="background-color: #f8f9fa; border-radius: 5px; position: relative;">
                     <div class="block-text">${marked.parse(block.originalText)}</div>
                     <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(232, 244, 255, 0.8); display: flex; justify-content: center; align-items: center; border-radius: 5px;">
                         <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
@@ -584,7 +566,7 @@ function generateBlockHTML(block) {
             if (content) {
                 const htmlContent = marked.parse(content);
                 return `<div class="translation-block completed" id="block-${index}">
-                    <div class="block-content p-3">
+                    <div class="block-content px-3">
                         <div class="block-text">${htmlContent}</div>
                     </div>
                 </div>`;
@@ -593,7 +575,7 @@ function generateBlockHTML(block) {
 
         case BLOCK_STATUS.FAILED:
             return `<div class="translation-block failed" id="block-${index}">
-                <div class="block-content p-3 my-3" style="border: 1px solid #ffcccc; border-radius: 5px; background-color: #fff8f8;">
+                <div class="block-content px-3" style="border: 1px solid #ffcccc; border-radius: 5px; background-color: #fff8f8;">
                     <div class="block-header mb-2 text-danger">
                         <strong>分块 ${index + 1}：翻译失败</strong>
                         <small class="d-block text-muted">${error}</small>
@@ -772,6 +754,9 @@ async function extractMarkdownText(file) {
         updateStatus('文本读取完成，准备翻译', 50);
         console.log('提取的文本:', extractedText.substring(0, 500) + '...');
 
+        // 文本读取完成后立即显示原文
+        displayOriginalText();
+
     } catch (error) {
         console.error('Markdown文件读取错误:', error);
         updateStatus('Markdown文件读取失败: ' + error.message, 0);
@@ -786,6 +771,31 @@ function readFileAsText(file) {
         reader.onerror = reject;
         reader.readAsText(file);
     });
+}
+
+// 显示原文内容
+function displayOriginalText() {
+    if (!extractedText) return;
+
+    // 确保翻译结果区域可见
+    if (translationResult.classList.contains('hidden')) {
+        translationResult.classList.remove('hidden');
+    }
+
+    // 将原文分块并显示
+    textBlocks = splitTextIntoBlocks(extractedText, blockSize);
+
+    // 初始化翻译块为"待翻译"状态
+    translatedBlocks = textBlocks.map((text, index) => ({
+        status: BLOCK_STATUS.PENDING,
+        content: null,
+        index: index,
+        originalText: text,
+        error: null
+    }));
+
+    // 显示所有待翻译块
+    updateAllTranslationBlocks();
 }
 
 /**
