@@ -473,31 +473,59 @@ async function startTranslation() {
 
 // 翻译单个文本块
 async function translateBlock(text, index) {
-    try {
-        translatedBlocks[index].status = BLOCK_STATUS.TRANSLATING;
-        updateTranslationBlock(index);
+    // 添加重试计数器
+    let retryCount = 0;
+    const maxRetries = 3;
+    const retryDelay = 3000; // 3秒
 
-        fileInfo.progress = `${index + 1}/${textBlocks.length}`;
-        const translatedText = await callDeepSeekAPI(text);
+    // 创建延迟函数
+    const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-        translatedBlocks[index].status = BLOCK_STATUS.COMPLETED;
-        translatedBlocks[index].content = translatedText;
-        translatedBlocks[index].error = null;
+    async function attemptTranslation() {
+        try {
+            translatedBlocks[index].status = BLOCK_STATUS.TRANSLATING;
+            updateTranslationBlock(index);
 
-        updateTranslationBlock(index);
-        return translatedText;
-    } catch (error) {
-        console.error(`翻译块 ${index} 失败:`, error);
+            fileInfo.progress = `${index + 1}/${textBlocks.length}`;
+            const translatedText = await callDeepSeekAPI(text);
 
-        translatedBlocks[index].status = BLOCK_STATUS.FAILED;
-        translatedBlocks[index].error = error.message;
-        translatedBlocks[index].content = `
+            translatedBlocks[index].status = BLOCK_STATUS.COMPLETED;
+            translatedBlocks[index].content = translatedText;
+            translatedBlocks[index].error = null;
+
+            updateTranslationBlock(index);
+            return translatedText;
+        } catch (error) {
+            // 如果还有重试次数，则进行重试
+            if (retryCount < maxRetries) {
+                retryCount++;
+                console.log(`翻译块 ${index} 失败，正在进行第 ${retryCount} 次重试...`);
+
+                // 更新状态显示重试信息
+                translatedBlocks[index].status = BLOCK_STATUS.TRANSLATING;
+                translatedBlocks[index].error = `失败: ${error.message}，正在进行第 ${retryCount} 次重试...`;
+                updateTranslationBlock(index);
+
+                // 等待指定的延迟时间后重试
+                await delay(retryDelay);
+                return attemptTranslation();
+            }
+
+            // 已达到最大重试次数，标记为失败
+            console.error(`翻译块 ${index} 失败 (已重试 ${retryCount} 次):`, error);
+
+            translatedBlocks[index].status = BLOCK_STATUS.FAILED;
+            translatedBlocks[index].error = `${error.message} (已重试 ${retryCount} 次)`;
+            translatedBlocks[index].content = `
 原文:
 ${text}`;
 
-        updateTranslationBlock(index);
-        return translatedBlocks[index].content;
+            updateTranslationBlock(index);
+            return translatedBlocks[index].content;
+        }
     }
+
+    return attemptTranslation();
 }
 
 // 调用Cloudflare Worker API进行翻译
@@ -550,6 +578,12 @@ function generateBlockHTML(block) {
             </div>`;
 
         case BLOCK_STATUS.TRANSLATING:
+            // 添加重试信息显示
+            let statusText = `正在翻译分块 ${index + 1}...`;
+            if (block.error) {
+                statusText = block.error;
+            }
+
             return `<div class="translation-block translating" id="block-${index}">
                 <div class="block-content px-3" style="background-color: #f8f9fa; border-radius: 5px; position: relative;">
                     <div class="block-text">${marked.parse(block.originalText)}</div>
@@ -557,7 +591,7 @@ function generateBlockHTML(block) {
                         <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
-                        <span>正在翻译分块 ${index + 1}...</span>
+                        <span>${statusText}</span>
                     </div>
                 </div>
             </div>`;
