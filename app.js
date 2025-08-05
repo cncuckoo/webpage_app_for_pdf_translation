@@ -280,40 +280,65 @@ async function extractPdfText(file) {
 async function fetchWebContent(url) {
     updateStatus('正在从网页获取内容...', 20);
 
-    try {
-        // Construct the API request URL
-        const apiRequestUrl = `${corsProxyUrl}${encodeURIComponent(webInkApiUrl)}?url=${encodeURIComponent(url)}`;
-        console.log('apiRequestUrl', apiRequestUrl)
+    const maxRetries = 3; // 保持不变，表示最多3次重试
+    const retryDelay = 500; // 0.5秒
+    let retryCount = 0; // 重试计数器
 
-        const response = await fetch(apiRequestUrl, {
-            cache: 'no-store'
-        });
+    while (true) {
+        try {
+            // Construct the API request URL
+            const apiRequestUrl = `${corsProxyUrl}${encodeURIComponent(webInkApiUrl)}?url=${encodeURIComponent(url)}`;
 
-        if (!response.ok) {
-            throw new Error(`获取网页内容失败: ${response.status} ${response.statusText}`);
+            if (retryCount === 0) {
+                console.log('apiRequestUrl', apiRequestUrl, '(初始请求)');
+            } else {
+                console.log('apiRequestUrl', apiRequestUrl, `(重试 ${retryCount}/${maxRetries})`);
+            }
+
+            const response = await fetch(apiRequestUrl, {
+                cache: 'no-store'
+            });
+
+            if (!response.ok) {
+                throw new Error(`获取网页内容失败: ${response.status} ${response.statusText}`);
+            }
+
+            const markdown = await response.text();
+
+            // 保存文件信息
+            fileInfo = {
+                fileName: `webpage_${generateSafeFilenameFromUrl(url)}`,
+                fileType: 'webpage',
+                sourceUrl: url
+            };
+
+            extractedText = markdown;
+            updateStatus('网页内容获取完成，准备翻译', 50);
+            console.log('获取的网页内容:', extractedText);
+
+            // 网页内容获取完成后立即显示原文
+            displayOriginalText();
+
+            return markdown;
+        } catch (error) {
+            if (retryCount === 0) {
+                console.error('获取网页内容错误 (初始请求):', error);
+            } else {
+                console.error(`获取网页内容错误 (重试 ${retryCount}/${maxRetries}):`, error);
+            }
+
+            if (retryCount >= maxRetries) {
+                // 已达到最大重试次数，抛出错误
+                updateStatus('获取网页内容失败: ' + error.message, 0);
+                error.message = '获取网页内容失败，请检查网络连接或稍后再试'
+                throw error;
+            } else {
+                // 还有重试机会，等待后继续
+                retryCount++;
+                updateStatus(`获取网页内容失败，${retryDelay / 1000}秒后重试 (${retryCount}/${maxRetries})...`, 20);
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+            }
         }
-
-        const markdown = await response.text();
-
-        // 保存文件信息
-        fileInfo = {
-            fileName: `webpage_${generateSafeFilenameFromUrl(url)}`,
-            fileType: 'webpage',
-            sourceUrl: url
-        };
-
-        extractedText = markdown;
-        updateStatus('网页内容获取完成，准备翻译', 50);
-        console.log('获取的网页内容:', extractedText);
-
-        // 网页内容获取完成后立即显示原文
-        displayOriginalText();
-
-        return markdown;
-    } catch (error) {
-        console.error('获取网页内容错误:', error);
-        updateStatus('获取网页内容失败: ' + error.message, 0);
-        throw error;
     }
 }
 
@@ -458,8 +483,8 @@ async function startTranslation() {
         // 所有块都翻译完成后，显示最终结果
         displayTranslationResult();
     } catch (error) {
-        console.error('翻译过程出错:', error);
-        updateStatus('翻译过程出错: ' + error.message, 0);
+        console.error('翻译任务失败:', error);
+        updateStatus('翻译任务失败: ' + error.message, 0);
 
         // 恢复UI元素状态
         browseButton.disabled = false;
