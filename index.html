@@ -237,6 +237,130 @@
                 font-size: 0.75rem;
             }
         }
+
+        /* 打印样式 - 只显示翻译结果正文 */
+        @media print {
+
+            /* 隐藏所有不需要打印的元素 */
+            body * {
+                visibility: hidden;
+            }
+
+            /* 只显示翻译结果内容 */
+            #translatedContent,
+            #translatedContent * {
+                visibility: visible;
+            }
+
+            /* 重置页面布局 */
+            body {
+                margin: 0;
+                padding: 0;
+                background: white !important;
+                font-family: 'Times New Roman', serif;
+                font-size: 12pt;
+                line-height: 1.5;
+                color: black !important;
+            }
+
+            /* 翻译内容区域样式 */
+            #translatedContent {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100% !important;
+                height: auto !important;
+                margin: 0;
+                padding: 20px;
+                background: white !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+
+            /* 标题样式 */
+            #translatedContent h1,
+            #translatedContent h2,
+            #translatedContent h3,
+            #translatedContent h4,
+            #translatedContent h5,
+            #translatedContent h6 {
+                color: black !important;
+                page-break-after: avoid;
+                margin-top: 1em;
+                margin-bottom: 0.5em;
+            }
+
+            /* 段落样式 */
+            #translatedContent p {
+                margin-bottom: 1em;
+                text-align: justify;
+                orphans: 3;
+                widows: 3;
+            }
+
+            /* 列表样式 */
+            #translatedContent ul,
+            #translatedContent ol {
+                margin-bottom: 1em;
+            }
+
+            #translatedContent li {
+                margin-bottom: 0.3em;
+            }
+
+            /* 代码块样式 */
+            #translatedContent pre,
+            #translatedContent code {
+                background: #f5f5f5 !important;
+                border: 1px solid #ddd !important;
+                font-family: 'Courier New', monospace;
+                font-size: 10pt;
+            }
+
+            #translatedContent pre {
+                padding: 10px;
+                margin: 1em 0;
+                page-break-inside: avoid;
+            }
+
+            /* 表格样式 */
+            #translatedContent table {
+                border-collapse: collapse;
+                width: 100%;
+                margin: 1em 0;
+                page-break-inside: avoid;
+            }
+
+            #translatedContent th,
+            #translatedContent td {
+                border: 1px solid #ddd !important;
+                padding: 8px;
+                text-align: left;
+            }
+
+            #translatedContent th {
+                background-color: #f5f5f5 !important;
+                font-weight: bold;
+            }
+
+            /* 链接样式 */
+            #translatedContent a {
+                color: black !important;
+                text-decoration: underline;
+            }
+
+            /* 图片样式 */
+            #translatedContent img {
+                max-width: 100% !important;
+                height: auto !important;
+                page-break-inside: avoid;
+            }
+
+            /* 分页控制 */
+            #translatedContent .page-break {
+                page-break-before: always;
+            }
+        }
     </style>
 </head>
 
@@ -344,7 +468,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.0/marked.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css"
         rel="stylesheet">
-    <script src="app.js?v=202508050928"></script>
+    <script src="app.js?v=202509180923"></script>
 </body>
 
 </html>
