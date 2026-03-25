@@ -33,7 +33,7 @@ const concurrencyLimit = 9;
 const blockSize = 500;
 const mode = 'production'
 // const mode = 'dev'
-const apiUrl = mode === 'dev' ? 'http://localhost:8787' : 'https://worker.pdftranslate.fun';
+const apiUrl = mode === 'dev' ? 'http://localhost:8787' : 'https://pdftranslate.lisongfeng.workers.dev';
 
 // WebInk API URL
 const webInkApiUrl = 'https://webink.app/api/markdown';
